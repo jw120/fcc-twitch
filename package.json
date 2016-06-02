@@ -1,0 +1,23 @@
+{
+  "name": "wikipedia",
+  "version": "1.0.0",
+  "description": "FreeCodeCamp Twitch exercise",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/jw120/fcc-twitch.git"
+  },
+  "main": "index.html",
+  "dependencies": {},
+  "devDependencies": {
+    "tslint": "next",
+    "typescript": "next"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "lint": "tslint -c tslint.json src/*.ts",
+    "build": "cp src/index.html src/twitch.css src/twitch.js src/twitch.js.map dist/",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "JW",
+  "license": "MIT"
+}

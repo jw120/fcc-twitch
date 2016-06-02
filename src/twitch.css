@@ -1,0 +1,56 @@
+body {
+    font-family: "Helvetica", "Arial", sans-serif;
+}
+
+/* Contains all of our content (except footer) */
+.overall {
+    padding-top: 2em;
+    max-width: 40em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Content above the list of channels - holds title and controls */
+.top {
+    width: 100%;
+    background-color: darkseagreen;
+}
+
+.top h1 {
+    font-size: 16pt;
+    padding-top: 0.5em;
+    text-align: center;
+}
+
+.top input {
+    font-size: 10pt;
+    margin-left: 1em;
+    margin-bottom: 1em;
+}
+
+/* The list of channels */
+.list {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+}
+
+/* Style for each channel */
+.channel {
+    width: 100%;
+    background-color: aqua;
+    height: 4em;
+    margin-top: 4px;
+
+
+}
+
+
+
+.footer {
+    padding-top: 10em;
+    font-size: 8pt;
+    text-align: center;
+}
