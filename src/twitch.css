@@ -31,22 +31,52 @@ body {
 /* The list of channels */
 .list {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-start;
-    align-items: center;
-    width: 100%;
+    align-items: flex-start;
+    min-width: 300px;
 }
 
 /* Style for each channel */
 .channel {
-    width: 100%;
-    background-color: aqua;
+    min-width: 12em;
     height: 4em;
+    flex: 1;
     margin-top: 4px;
-
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    border: 3px solid white;
 
 }
 
+.channel.offline {
+    background-color: lightgrey;
+    color: slategrey;
+}
+
+.channel.online {
+    background-color: aqua;
+}
+
+/* Components of each channel */
+.channel-left {
+    height: 100%;
+    width: 4em;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+.channel-logo {
+    height: 3em;
+    width: 3em;
+}
+.channel-right {
+    padding-left: 1em;
+}
 
 
 .footer {

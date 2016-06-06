@@ -14,6 +14,8 @@
 // const apiSuffix: string = "&callback="; // Name of the callback is added by fetchJSONP
 
 
+const offlineMessage: string = "Offline";
+
 // Test data
 const offlineDummy: APIReturn = {
   stream: null,
@@ -116,7 +118,10 @@ run_when_document_ready(function (): void {
   // });
 
   // Test code
-  updateDOM([offlineDummy, notFoundDummy, onlineDummy]);
+  updateDOM([
+    offlineDummy, notFoundDummy, onlineDummy,
+    offlineDummy, notFoundDummy, onlineDummy
+    ]);
 
 });
 
@@ -220,46 +225,56 @@ function updateDOM(results: APIReturn[]): void {
   results.forEach((res: APIReturn): void => {
 
     if (res.error) {
-      list.appendChild(createErrorChannel(res.requested, res.message));
+      list.appendChild(createChannel(res.requested, false, res.message || ""));
     } else if (!res.stream) {
-      list.appendChild(createOfflineChannel(res.requested));
+      list.appendChild(createChannel(res.requested, false, offlineMessage));
     } else {
-      list.appendChild(createOnlineChannel(res.requested, res.stream));
+      list.appendChild(createChannel(res.requested, true, "", res.stream));
     }
 
   });
 
 }
 
-// Create a DOM node representing channel for which the API gives an error value
-function createErrorChannel(name: string, message: string | undefined): Node {
-  let newBox: Element = document.createElement("div");
-  newBox.className = "channel error";
-  newBox.appendChild(document.createTextNode(message || "No message returned"));
-  return newBox;
-}
+// // Create a DOM node for a channel without a stream
+// function createOfflineChannel(name: string, message: string | undefined): Node {
+//   let newBox: Element = document.createElement("div");
+//   newBox.className = "channel offline";
+//   newBox.appendChild(document.createTextNode(message || ""));
+//   return newBox;
+// }
 
-// Create a DOM node representing channel for which the APU returns no stream
-function createOfflineChannel(name: string): Node {
-  let newBox: Element = document.createElement("div");
-  newBox.className = "channel offline";
-  return newBox;
-}
+// Create a DOM node representing a channel
+function createChannel(name: string, online: boolean, message: string, stream?: Stream): Node {
 
-// Create a DOM node representing an online channel
-function createOnlineChannel(name: string, stream: Stream): Node {
-  let newAnchor: Element | undefined = undefined;
-
-  if (stream._links && stream._links.self) {
-    newAnchor = document.createElement("a");
-    newAnchor.setAttribute("href", stream._links.self);
-    newAnchor.className = "result-anchor";
+  let anchor: Element | undefined = undefined;
+  if (stream && stream._links && stream._links.self) {
+    anchor = document.createElement("a");
+    anchor.setAttribute("href", stream._links.self);
+    anchor.className = "result-anchor";
   }
 
-  let newBox: Element = document.createElement("div");
-  newBox.className = "channel online";
+  let box: Element = document.createElement("div");
+  box.className = "channel " + (online ? "online" : "offline");
 
-  return newAnchor ? newAnchor.appendChild(newBox) : newBox;
+  let leftBox: HTMLDivElement = document.createElement("div");
+  leftBox.className = "channel-left";
+  if (online && stream) {
+    let logo: HTMLImageElement = document.createElement("img");
+    logo.className = "channel-logo";
+    if (stream.channel && stream.channel.logo) {
+      logo.src = stream.channel.logo;
+    }
+    leftBox.appendChild(logo);
+  }
+  box.appendChild(leftBox);
+
+  let rightBox: HTMLDivElement = document.createElement("div");
+  rightBox.className = "channel-right";
+  rightBox.appendChild(document.createTextNode(name));
+  box.appendChild(rightBox);
+
+  return anchor ? anchor.appendChild(box) : box;
 }
 
 /**
