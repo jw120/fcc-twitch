@@ -17,3 +17,4 @@ TODO
 * Add adding a channel
 * Add removing a channel
 * Add export/import channels to a file
+* Add refresh button?

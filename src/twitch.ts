@@ -10,8 +10,8 @@
 //
 // apiPrefix + <query-string> + apiSuffix + <callback-function-name>
 //
-const apiPrefix: string = "http://en.wikipedia.org/w/api.php?action=opensearch&namespace=0&format=json&search=";
-const apiSuffix: string = "&callback="; // Name of the callback is added by fetchJSONP
+// const apiPrefix: string = "http://en.wikipedia.org/w/api.php?action=opensearch&namespace=0&format=json&search=";
+// const apiSuffix: string = "&callback="; // Name of the callback is added by fetchJSONP
 
 
 // Test data
@@ -20,13 +20,15 @@ const offlineDummy: APIReturn = {
   _links: {
     self: "https://api.twitch.tv/kraken/streams/freecodecamp",
     channel: "https://api.twitch.tv/kraken/channels/freecodecamp"
-  }
+  },
+  requested: "freecodecamp"
 };
 
 const notFoundDummy: APIReturn = {
   error: "Not Found",
   message: "Channel 'suqkjfhkqjfh' does not exist",
-  status: 404
+  status: 404,
+  requested: "suqkjfhkqjfh"
 };
 
 const onlineDummy: APIReturn = {
@@ -87,7 +89,8 @@ const onlineDummy: APIReturn = {
   _links: {
     self: "https://api.twitch.tv/kraken/streams/superjj102",
     channel: "https://api.twitch.tv/kraken/channels/superjj102"
-  }
+  },
+  requested: "superjj102"
 };
 
 
@@ -103,14 +106,17 @@ const onlineDummy: APIReturn = {
 run_when_document_ready(function (): void {
 
   // Button to start a search
-  document.getElementById("search-button").addEventListener("click", startSearch);
+  // document.getElementById("search-button").addEventListener("click", startSearch);
 
   // Handle input into the search field
-  document.querySelector(".search-form").addEventListener("submit", function (event: Event): void {
-    let input: HTMLInputElement = document.getElementById("search-input") as HTMLInputElement;
-    launchSearch(input.value);
-    event.preventDefault();
-  });
+  // document.querySelector(".search-form").addEventListener("submit", function (event: Event): void {
+  //   let input: HTMLInputElement = document.getElementById("search-input") as HTMLInputElement;
+  //   launchSearch(input.value);
+  //   event.preventDefault();
+  // });
+
+  // Test code
+  updateDOM([offlineDummy, notFoundDummy, onlineDummy]);
 
 });
 
@@ -132,6 +138,7 @@ interface APIReturn {
   status?: number;
   _links?: any; // We don't use these
   stream?: null | Stream;
+  requested: string; // We add this to hold the value we requested
 }
 
 interface Stream {
@@ -181,62 +188,79 @@ interface Channel {
 
 
 // Starting a search means making the input field visible and putting cursor in it
-function startSearch(): void {
+// function startSearch(): void {
 
-  let input: HTMLFormElement = document.querySelector("#search-input") as HTMLFormElement;
-  input.style.visibility = "visible";
-  input.focus();
+//   let input: HTMLFormElement = document.querySelector("#search-input") as HTMLFormElement;
+//   input.style.visibility = "visible";
+//   input.focus();
 
-}
+// }
 
 // Launching a search uses a JSONP callback
-function launchSearch(query: string): void {
+// function launchSearch(query: string): void {
 
-  jsonp<RawSearchResult>(apiPrefix + query + apiSuffix)
-    .then(validateResult)
-    .then(updateSearchList)
-    .catch((e: Error) => console.log(e));
+//   // jsonp<RawSearchResult>(apiPrefix + query + apiSuffix)
+//   //   .then(validateResult)
+//   //   .then(updateDOM)
+//   //   .catch((e: Error) => console.log(e));
 
-}
+// }
 
 // Update the search-results div in the DOM with the new search results
-function updateSearchList(result: SearchResult): void {
+function updateDOM(results: APIReturn[]): void {
 
-  const resultsBox: Element = document.querySelector(".results-box");
+  const list: Element = document.querySelector(".list");
 
   // Remove any old search results
-  while (resultsBox.firstChild) {
-    resultsBox.removeChild(resultsBox.firstChild);
+  while (list.firstChild) {
+    list.removeChild(list.firstChild);
   }
 
   // Add each of the search results
-  result.titles.forEach((title: string, i: number): void => {
+  results.forEach((res: APIReturn): void => {
 
-    // Each result contained in an anchor which links to the result's wikipedia page
-    let newAnchor: Element = document.createElement("a");
-    newAnchor.setAttribute("href", result.urls[i]);
-    newAnchor.className = "result-anchor";
-    resultsBox.appendChild(newAnchor);
-
-    // Inside the anchor is a div for styling/spacing
-    let newBox: Element = document.createElement("div");
-    newBox.className = "result-box";
-    newAnchor.appendChild(newBox);
-
-    // Inside the div is, first, the title as a heading
-    let newTitle: Element = document.createElement("h4");
-    newTitle.appendChild(document.createTextNode(title));
-    newBox.appendChild(newTitle);
-
-    // Inside the div is, second, the first paragraph of the article
-    let newBody: Element = document.createElement("p");
-    newBody.appendChild(document.createTextNode(result.firstParas[i]));
-    newBox.appendChild(newBody);
+    if (res.error) {
+      list.appendChild(createErrorChannel(res.requested, res.message));
+    } else if (!res.stream) {
+      list.appendChild(createOfflineChannel(res.requested));
+    } else {
+      list.appendChild(createOnlineChannel(res.requested, res.stream));
+    }
 
   });
 
 }
 
+// Create a DOM node representing channel for which the API gives an error value
+function createErrorChannel(name: string, message: string | undefined): Node {
+  let newBox: Element = document.createElement("div");
+  newBox.className = "channel error";
+  newBox.appendChild(document.createTextNode(message || "No message returned"));
+  return newBox;
+}
+
+// Create a DOM node representing channel for which the APU returns no stream
+function createOfflineChannel(name: string): Node {
+  let newBox: Element = document.createElement("div");
+  newBox.className = "channel offline";
+  return newBox;
+}
+
+// Create a DOM node representing an online channel
+function createOnlineChannel(name: string, stream: Stream): Node {
+  let newAnchor: Element | undefined = undefined;
+
+  if (stream._links && stream._links.self) {
+    newAnchor = document.createElement("a");
+    newAnchor.setAttribute("href", stream._links.self);
+    newAnchor.className = "result-anchor";
+  }
+
+  let newBox: Element = document.createElement("div");
+  newBox.className = "channel online";
+
+  return newAnchor ? newAnchor.appendChild(newBox) : newBox;
+}
 
 /**
  *
@@ -247,35 +271,39 @@ function updateSearchList(result: SearchResult): void {
 
 // Validate that the raw result of the JSON parsing has the expected format, then convert to our
 // tidier search result type
-function validateResult(raw: RawSearchResult): SearchResult {
+// function validateResult(raw: RawSearchResult): APIReturn {
 
-  if (Array.isArray(raw) &&
+//   return offlineDummy;
+// /*
 
-      raw.length === 4 &&
-      typeof raw[0] === "string" &&
-      Array.isArray(raw[1]) &&
-      raw[1].every((x: string) => typeof x === "string")   &&
-      Array.isArray(raw[2]) &&
-      raw[2].every((x: string) => typeof x === "string")   &&
-      Array.isArray(raw[3]) &&
-      raw[3].every((x: string) => typeof x === "string")   &&
-      raw[1].length === raw[2].length &&
-      raw[2].length === raw[3].length) {
+//   if (Array.isArray(raw) &&
 
-    return {
-      query: raw[0],
-      titles: raw[1],
-      firstParas: raw[2],
-      urls: raw[3]
-     };
+//       raw.length === 4 &&
+//       typeof raw[0] === "string" &&
+//       Array.isArray(raw[1]) &&
+//       raw[1].every((x: string) => typeof x === "string")   &&
+//       Array.isArray(raw[2]) &&
+//       raw[2].every((x: string) => typeof x === "string")   &&
+//       Array.isArray(raw[3]) &&
+//       raw[3].every((x: string) => typeof x === "string")   &&
+//       raw[1].length === raw[2].length &&
+//       raw[2].length === raw[3].length) {
 
-   } else {
+//     return {
+//       query: raw[0],
+//       titles: raw[1],
+//       firstParas: raw[2],
+//       urls: raw[3]
+//      };
 
-     throw Error("Invalid search result");
+//    } else {
 
-  }
+//      throw Error("Invalid search result");
 
-}
+//   }
+//   */
+
+// }
 
 
 /*
@@ -297,30 +325,30 @@ function run_when_document_ready(fn: () => void): void {
 // Simple function to make a jsonp request and wrap in a Promise
 // Url paramater will have the name of the callback appended
 // Adapted from https://github.com/camsong/fetch-jsonp
-function jsonp<T>(url: string): Promise<T> {
+// function jsonp<T>(url: string): Promise<T> {
 
-  return new Promise((resolve: (r: T) => void) => {
+//   return new Promise((resolve: (r: T) => void) => {
 
-    // Create a random name for the callback function (so we can create many of them indpendently)
-    let callbackName: string = `callback_jsonp_${Date.now()}_${Math.ceil(Math.random() * 100000)}`;
+//     // Create a random name for the callback function (so we can create many of them indpendently)
+//     let callbackName: string = `callback_jsonp_${Date.now()}_${Math.ceil(Math.random() * 100000)}`;
 
-    // Add our callback function to the global window object which handles the JSON response from the URL
-    (window as any)[callbackName] = function (response: T): void {
+//     // Add our callback function to the global window object which handles the JSON response from the URL
+//     (window as any)[callbackName] = function (response: T): void {
 
-      // Pass the received JSON to the Promsie
-      resolve(response);
+//       // Pass the received JSON to the Promsie
+//       resolve(response);
 
-      // Remove the script tag and the name in the the global window object
-      const script: HTMLElement = document.getElementById(callbackName);
-      document.getElementsByTagName("head")[0].removeChild(script);
-      delete (window as any)[callbackName];
-    };
+//       // Remove the script tag and the name in the the global window object
+//       const script: HTMLElement = document.getElementById(callbackName);
+//       document.getElementsByTagName("head")[0].removeChild(script);
+//       delete (window as any)[callbackName];
+//     };
 
-    // Add a script object to our document which will call our callback
-    const script: HTMLElement = document.createElement("script");
-    script.setAttribute("src", url + callbackName);
-    script.id = callbackName;
-    document.getElementsByTagName("head")[0].appendChild(script);
+//     // Add a script object to our document which will call our callback
+//     const script: HTMLElement = document.createElement("script");
+//     script.setAttribute("src", url + callbackName);
+//     script.id = callbackName;
+//     document.getElementsByTagName("head")[0].appendChild(script);
 
-  });
-}
+//   });
+// }
