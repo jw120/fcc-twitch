@@ -15,6 +15,7 @@
 
 
 const offlineMessage: string = "Offline";
+const infoBoxIDPrefix: string = "info-";
 
 // Test data
 const offlineDummy: APIReturn = {
@@ -121,7 +122,7 @@ run_when_document_ready(function (): void {
   updateDOM([
     offlineDummy, notFoundDummy, onlineDummy,
     offlineDummy, notFoundDummy, onlineDummy
-    ]);
+  ]);
 
 });
 
@@ -225,11 +226,11 @@ function updateDOM(results: APIReturn[]): void {
   results.forEach((res: APIReturn): void => {
 
     if (res.error) {
-      list.appendChild(createChannel(res.requested, false, res.message || ""));
+      list.appendChild(createChannel(res.requested, res.message || ""));
     } else if (!res.stream) {
-      list.appendChild(createChannel(res.requested, false, offlineMessage));
+      list.appendChild(createChannel(res.requested, offlineMessage));
     } else {
-      list.appendChild(createChannel(res.requested, true, "", res.stream));
+      list.appendChild(createChannel(res.requested, res.stream));
     }
 
   });
@@ -244,37 +245,52 @@ function updateDOM(results: APIReturn[]): void {
 //   return newBox;
 // }
 
-// Create a DOM node representing a channel
-function createChannel(name: string, online: boolean, message: string, stream?: Stream): Node {
+// Create a DOM node representing a channel, takes the name of the channel and either its
+// Stream or an error message
+function createChannel(channelName: string, stream: Stream | string): Node {
 
-  let anchor: Element | undefined = undefined;
-  if (stream && stream._links && stream._links.self) {
-    anchor = document.createElement("a");
-    anchor.setAttribute("href", stream._links.self);
-    anchor.className = "result-anchor";
-  }
-
+  // Top-level box
   let box: Element = document.createElement("div");
-  box.className = "channel " + (online ? "online" : "offline");
+  box.className = "channel " + (typeof stream === "string" ? "offline" : "online");
+  box.addEventListener("click", () => {
+    console.log("Click on", channelName);
+    let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
+    e.style.display = e.style.display === "none" ? "flex" : "none";
+  });
 
+  // Top part of box is always visible - logo on the left (if online), name on right
+  let topBox: HTMLDivElement = document.createElement("div");
+  topBox.className = "channel-top";
+  box.appendChild(topBox);
   let leftBox: HTMLDivElement = document.createElement("div");
-  leftBox.className = "channel-left";
-  if (online && stream) {
-    let logo: HTMLImageElement = document.createElement("img");
-    logo.className = "channel-logo";
-    if (stream.channel && stream.channel.logo) {
+  leftBox.className = "channel-top-left";
+  if (typeof stream !== "string" && stream.channel && stream.channel.logo) {
+      let logo: HTMLImageElement = document.createElement("img");
+      logo.className = "channel-logo";
       logo.src = stream.channel.logo;
-    }
-    leftBox.appendChild(logo);
+      leftBox.appendChild(logo);
   }
-  box.appendChild(leftBox);
-
+  topBox.appendChild(leftBox);
   let rightBox: HTMLDivElement = document.createElement("div");
-  rightBox.className = "channel-right";
-  rightBox.appendChild(document.createTextNode(name));
-  box.appendChild(rightBox);
+  rightBox.className = "channel-top-right";
+  rightBox.appendChild(document.createTextNode(channelName));
+  topBox.appendChild(rightBox);
 
-  return anchor ? anchor.appendChild(box) : box;
+  // Bottom part has its display changed on click
+  let infoBox: HTMLDivElement = document.createElement("div");
+  infoBox.className = "channel-info";
+  infoBox.id = infoBoxIDPrefix + channelName;
+  infoBox.style.display = "none";
+  for (let i: number = 0; i < 3; i++ ) {
+    let item: HTMLDivElement = document.createElement("div");
+    item.className = "channel-info-item";
+    item.appendChild(document.createTextNode("Info box " + i));
+    infoBox.appendChild(item);
+  }
+  box.appendChild(infoBox);
+
+  return box;
+
 }
 
 /**
