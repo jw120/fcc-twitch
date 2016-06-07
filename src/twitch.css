@@ -50,6 +50,11 @@ body {
     border: 3px solid white;
 }
 
+.channel.dummy {
+    height: 0px;
+    visibility: hidden;
+}
+
 .channel.offline {
     background-color: lightgrey;
     color: slategrey;

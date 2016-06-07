@@ -10,8 +10,8 @@
 //
 // apiPrefix + <query-string> + apiSuffix + <callback-function-name>
 //
-// const apiPrefix: string = "http://en.wikipedia.org/w/api.php?action=opensearch&namespace=0&format=json&search=";
-// const apiSuffix: string = "&callback="; // Name of the callback is added by fetchJSONP
+// const apiPrefix: string = "https://api.twitch.tv/kraken/streams/";
+// const apiSuffix: string = "?callback="; // Name of the callback is added by fetchJSONP
 
 
 // const offlineMessage: string = "Offline";
@@ -97,7 +97,11 @@ const onlineDummy: APIReturn = {
   requested: "superjj102"
 };
 
-
+/**
+ *
+ * Global variable (our state)
+ *
+ */
 
 
 /*
@@ -107,24 +111,46 @@ const onlineDummy: APIReturn = {
  */
 
 
-run_when_document_ready(function (): void {
+run_when_document_ready(() => {
 
-  // Button to start a search
-  // document.getElementById("search-button").addEventListener("click", startSearch);
+  let initialChannels: string[] = ["superjj102", "amazhs", "jfhjhf", "sjow",  "eloise_ailv"];
+  let subscribedChannels: null | Map<string, APIReturn> = null;
 
-  // Handle input into the search field
-  // document.querySelector(".search-form").addEventListener("submit", function (event: Event): void {
-  //   let input: HTMLInputElement = document.getElementById("search-input") as HTMLInputElement;
-  //   launchSearch(input.value);
-  //   event.preventDefault();
-  // });
+  // // Launch one async call for ach subscribed channel
+  // let keyValuePromises: Promise<[string, APIReturn]>[] =
+  //   initialChannels.map((channelName: string) =>
+  //     jsonp<APIReturn>(apiPrefix + channelName + apiSuffix)
+  //       .then((apiReturn: APIReturn) => {
+  //         console.log("Returned from", channelName, apiReturn);
+  //         return [channelName, apiReturn];
+  //       }));
 
-  // Test code
-  updateDOM([
-    offlineDummy, notFoundDummy, onlineDummy,
-    offlineDummy, notFoundDummy, onlineDummy
+  // // When all async calls have returned, update the DOM
+  // Promise.all(keyValuePromises)
+  //   .then((kvs: [string, APIReturn][]) => {
+  //     console.log("All resolved", kvs);
+  //     subscribedChannels = new Map(kvs);
+  //     updateDOM(subscribedChannels);
+  //   })
+  //   .catch((e: Error) => {
+  //     console.log(e);
+  //   });
+
+  subscribedChannels = new Map([
+    ["superjj102", onlineDummy],
+    ["suqkjfhgjgh", notFoundDummy],
+    ["freecodecamp", offlineDummy]
   ]);
+  updateDOM(subscribedChannels);
 
+  //
+  let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
+  onlineFilter.addEventListener("click", () => {
+    console.log("onlineFilter", onlineFilter.checked);
+    if (subscribedChannels) {
+      updateDOM(subscribedChannels);
+    }
+  });
 });
 
 
@@ -194,27 +220,8 @@ interface Channel {
  */
 
 
-// Starting a search means making the input field visible and putting cursor in it
-// function startSearch(): void {
-
-//   let input: HTMLFormElement = document.querySelector("#search-input") as HTMLFormElement;
-//   input.style.visibility = "visible";
-//   input.focus();
-
-// }
-
-// Launching a search uses a JSONP callback
-// function launchSearch(query: string): void {
-
-//   // jsonp<RawSearchResult>(apiPrefix + query + apiSuffix)
-//   //   .then(validateResult)
-//   //   .then(updateDOM)
-//   //   .catch((e: Error) => console.log(e));
-
-// }
-
 // Update the search-results div in the DOM with the new search results
-function updateDOM(results: APIReturn[]): void {
+function updateDOM(channels: Map<string, APIReturn>): void {
 
   const list: Element = document.querySelector(".list");
 
@@ -224,27 +231,28 @@ function updateDOM(results: APIReturn[]): void {
   }
 
   // Add each of the search results
-  results.forEach((res: APIReturn): void => {
+  channels.forEach((res: APIReturn, channelName: string): void => {
 
     if (res.error) {
-      list.appendChild(createChannel(res.requested, res.message || defaultErrorMessage));
+      if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
+        list.appendChild(createChannel(channelName, res.message || defaultErrorMessage));
+      }
     } else if (!res.stream) {
-      list.appendChild(createChannel(res.requested, ""));
+      if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
+        list.appendChild(createChannel(channelName, ""));
+      }
     } else {
-      list.appendChild(createChannel(res.requested, res.stream));
+      list.appendChild(createChannel(channelName, res.stream));
     }
 
   });
 
-}
+  // Add dummy channels at the end
+  for (let i: number = 0; i < 4; i++) {
+    list.appendChild(createDummyChannel());
+  }
 
-// // Create a DOM node for a channel without a stream
-// function createOfflineChannel(name: string, message: string | undefined): Node {
-//   let newBox: Element = document.createElement("div");
-//   newBox.className = "channel offline";
-//   newBox.appendChild(document.createTextNode(message || ""));
-//   return newBox;
-// }
+}
 
 // Create a DOM node representing a channel, takes the name of the channel and either its
 // Stream or an error message (an empty string if offline)
@@ -295,7 +303,7 @@ function createChannel(channelName: string, stream: Stream | string): Node {
   if (typeof stream !== "string") {
     addInfoItem(infoBox, "Game", stream.channel.game);
     addInfoItem(infoBox, "Status", stream.channel.status);
-    addInfoItem(infoBox, "Views", stream.channel.views.toString());
+    addInfoItem(infoBox, "Viewers", stream.viewers.toString());
     addInfoItem(infoBox, "Delay", stream.channel.delay || "-");
     addInfoItem(infoBox, "Video", stream.video_height + "px, " + stream.average_fps + "fps");
   }
@@ -315,6 +323,16 @@ function addInfoItem(parent: HTMLElement, tag: string, content: string): void {
   para.appendChild(document.createTextNode(content));
   item.appendChild(para);
   parent.appendChild(item);
+}
+
+// Create a DOM node for a dummy channel (used to make bottom row of channels have equal width as others)
+function createDummyChannel(): Node {
+
+  let box: Element = document.createElement("div");
+  box.className = "channel dummy";
+
+  return box;
+
 }
 
 /**
@@ -380,30 +398,32 @@ function run_when_document_ready(fn: () => void): void {
 // Simple function to make a jsonp request and wrap in a Promise
 // Url paramater will have the name of the callback appended
 // Adapted from https://github.com/camsong/fetch-jsonp
-// function jsonp<T>(url: string): Promise<T> {
+function jsonp<T>(url: string): Promise<T> {
 
-//   return new Promise((resolve: (r: T) => void) => {
+  console.log("Called jsonp for", url);
 
-//     // Create a random name for the callback function (so we can create many of them indpendently)
-//     let callbackName: string = `callback_jsonp_${Date.now()}_${Math.ceil(Math.random() * 100000)}`;
+  return new Promise((resolve: (r: T) => void) => {
 
-//     // Add our callback function to the global window object which handles the JSON response from the URL
-//     (window as any)[callbackName] = function (response: T): void {
+    // Create a random name for the callback function (so we can create many of them indpendently)
+    let callbackName: string = `callback_jsonp_${Date.now()}_${Math.ceil(Math.random() * 100000)}`;
 
-//       // Pass the received JSON to the Promsie
-//       resolve(response);
+    // Add our callback function to the global window object which handles the JSON response from the URL
+    (window as any)[callbackName] = function (response: T): void {
 
-//       // Remove the script tag and the name in the the global window object
-//       const script: HTMLElement = document.getElementById(callbackName);
-//       document.getElementsByTagName("head")[0].removeChild(script);
-//       delete (window as any)[callbackName];
-//     };
+      // Pass the received JSON to the Promsie
+      resolve(response);
 
-//     // Add a script object to our document which will call our callback
-//     const script: HTMLElement = document.createElement("script");
-//     script.setAttribute("src", url + callbackName);
-//     script.id = callbackName;
-//     document.getElementsByTagName("head")[0].appendChild(script);
+      // Remove the script tag and the name in the the global window object
+      const script: HTMLElement = document.getElementById(callbackName);
+      document.getElementsByTagName("head")[0].removeChild(script);
+      delete (window as any)[callbackName];
+    };
 
-//   });
-// }
+    // Add a script object to our document which will call our callback
+    const script: HTMLElement = document.createElement("script");
+    script.setAttribute("src", url + callbackName);
+    script.id = callbackName;
+    document.getElementsByTagName("head")[0].appendChild(script);
+
+  });
+}
