@@ -14,7 +14,8 @@
 // const apiSuffix: string = "&callback="; // Name of the callback is added by fetchJSONP
 
 
-const offlineMessage: string = "Offline";
+// const offlineMessage: string = "Offline";
+const defaultErrorMessage: string = "Unidentified error"; // If API returns an error without a message
 const infoBoxIDPrefix: string = "info-";
 
 // Test data
@@ -226,9 +227,9 @@ function updateDOM(results: APIReturn[]): void {
   results.forEach((res: APIReturn): void => {
 
     if (res.error) {
-      list.appendChild(createChannel(res.requested, res.message || ""));
+      list.appendChild(createChannel(res.requested, res.message || defaultErrorMessage));
     } else if (!res.stream) {
-      list.appendChild(createChannel(res.requested, offlineMessage));
+      list.appendChild(createChannel(res.requested, ""));
     } else {
       list.appendChild(createChannel(res.requested, res.stream));
     }
@@ -246,17 +247,19 @@ function updateDOM(results: APIReturn[]): void {
 // }
 
 // Create a DOM node representing a channel, takes the name of the channel and either its
-// Stream or an error message
+// Stream or an error message (an empty string if offline)
 function createChannel(channelName: string, stream: Stream | string): Node {
 
   // Top-level box
   let box: Element = document.createElement("div");
-  box.className = "channel " + (typeof stream === "string" ? "offline" : "online");
-  box.addEventListener("click", () => {
-    console.log("Click on", channelName);
-    let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
-    e.style.display = e.style.display === "none" ? "flex" : "none";
-  });
+  box.className = "channel " + (typeof stream === "string" ? (stream === "" ? "offline" : "error") : "online");
+  if (typeof stream !== "string") {
+    box.addEventListener("click", () => {
+      console.log("Click on", channelName);
+      let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
+      e.style.display = e.style.display === "none" ? "flex" : "none";
+    });
+  }
 
   // Top part of box is always visible - logo on the left (if online), name on right
   let topBox: HTMLDivElement = document.createElement("div");
@@ -273,7 +276,15 @@ function createChannel(channelName: string, stream: Stream | string): Node {
   topBox.appendChild(leftBox);
   let rightBox: HTMLDivElement = document.createElement("div");
   rightBox.className = "channel-top-right";
-  rightBox.appendChild(document.createTextNode(channelName));
+  if (typeof stream === "string") {
+    let text: string = stream === "" ? channelName : (stream + " (" + channelName + ")");
+    rightBox.appendChild(document.createTextNode(text));
+  } else {
+    let anchor: HTMLAnchorElement = document.createElement("a");
+    anchor.appendChild(document.createTextNode(channelName));
+    anchor.href = stream._links.self;
+    rightBox.appendChild(anchor);
+  }
   topBox.appendChild(rightBox);
 
   // Bottom part has its display changed on click
@@ -281,16 +292,29 @@ function createChannel(channelName: string, stream: Stream | string): Node {
   infoBox.className = "channel-info";
   infoBox.id = infoBoxIDPrefix + channelName;
   infoBox.style.display = "none";
-  for (let i: number = 0; i < 3; i++ ) {
-    let item: HTMLDivElement = document.createElement("div");
-    item.className = "channel-info-item";
-    item.appendChild(document.createTextNode("Info box " + i));
-    infoBox.appendChild(item);
+  if (typeof stream !== "string") {
+    addInfoItem(infoBox, "Game", stream.channel.game);
+    addInfoItem(infoBox, "Status", stream.channel.status);
+    addInfoItem(infoBox, "Views", stream.channel.views.toString());
+    addInfoItem(infoBox, "Delay", stream.channel.delay || "-");
+    addInfoItem(infoBox, "Video", stream.video_height + "px, " + stream.average_fps + "fps");
   }
   box.appendChild(infoBox);
 
   return box;
 
+}
+
+function addInfoItem(parent: HTMLElement, tag: string, content: string): void {
+  let item: HTMLDivElement = document.createElement("div");
+  item.className = "channel-info-item";
+  let heading: HTMLHeadingElement = document.createElement("h4");
+  heading.appendChild(document.createTextNode(tag));
+  item.appendChild(heading);
+  let para: HTMLParagraphElement = document.createElement("p");
+  para.appendChild(document.createTextNode(content));
+  item.appendChild(para);
+  parent.appendChild(item);
 }
 
 /**

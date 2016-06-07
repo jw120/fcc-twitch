@@ -9,7 +9,6 @@ Hosted at [jw120.github.io](https://jw120.github.io)
 
 TODO
 
-* Set up basic info box with info and a link mechanism
 * Add API call
 * Add filtering
 * Add saing channel list to localStorage
