@@ -10,10 +10,11 @@ body {
     margin-right: auto;
 }
 
-/* Content above the list of channels - holds title and controls */
+/* Content above the list of channels - holds title and filter control */
 .top {
     width: 100%;
     background-color: seagreen;
+    border: 3px solid white;
 }
 
 .top h1 {
@@ -28,6 +29,21 @@ body {
     margin-bottom: 1em;
 }
 
+/* Content below the list of channels - holds additional controls */
+.bottom {
+    width: 100%;
+    background-color: seagreen;
+    margin-top: -16px;
+    border: 3px solid white;
+}
+
+.bottom input {
+    font-size: 10pt;
+    margin-left: 1em;
+    margin-bottom: 1em;
+    margin-top: 1em;
+}
+
 /* The list of channels */
 .list {
     display: flex;
@@ -36,13 +52,13 @@ body {
     justify-content: flex-start;
     align-items: flex-start;
     min-width: 300px;
+    border: 3px solid white;
 }
 
 /* Style for each channel */
 .channel {
     min-width: 12em;
     flex: 1;
-    margin-top: 4px;
     display: flex;
     flex-direction: column;
     justify-content: center;

@@ -143,6 +143,8 @@ run_when_document_ready(() => {
   ]);
   updateDOM(subscribedChannels);
 
+  // TODO Sort out not doing this until all of subscribedChannels is setup
+
   //
   let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
   onlineFilter.addEventListener("click", () => {
@@ -151,6 +153,16 @@ run_when_document_ready(() => {
       updateDOM(subscribedChannels);
     }
   });
+
+  document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
+    let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
+    if (subscribedChannels) {
+      addChannel(subscribedChannels, input.value);
+      input.value = "";
+    }
+    event.preventDefault();
+  });
+
 });
 
 
@@ -333,6 +345,12 @@ function createDummyChannel(): Node {
 
   return box;
 
+}
+
+function addChannel(subs: Map<string, APIReturn>, newChannel: string) {
+  console.log("Adding", newChannel);
+  subs.set(newChannel, offlineDummy);
+  updateDOM(subs);
 }
 
 /**
