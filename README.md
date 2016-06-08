@@ -9,16 +9,17 @@ Hosted at [jw120.github.io](https://jw120.github.io)
 
 TODO
 
-* Better promisfying of startup code
-* Add refresh
+* DONE - Better promisfying of startup code
+* DONE - Add refresh
 * DONE - Nicer colours
+* DONE Add saving to localStorage
+* Add delete
 * Tidy info box output (make sure fits in box for status - variable width boxes?)
 * DONE - Make final row boxes have equal width (like in portfolio)
-* Add Saving and loading of subscribed lists
+* Add importing of tracked channels
+* Add share (=show and put onto clipboard) of tracked channels
 * DONE - Add filtering
-* Sort out borders/margins/spacing so less ugly - Try removing all of them...
 * DONE Add adding a channel
-* Add removing a channel
-* Add export/import channels to a file
+* Add a message if no channels
 * Add core.js for let, promises, etc
 * iPhone cursor click trick and test

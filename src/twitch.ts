@@ -7,7 +7,14 @@
 const apiPrefix: string = "https://api.twitch.tv/kraken/streams/";
 const apiSuffix: string = "?callback="; // Name of the callback is added by fetchJSONP
 
-const offlineMode: boolean = false;
+const localStorageKey: string = "channelNames";
+
+// Channels used on first startup - based on freecodecamp suggestions
+const defaultChannels: string[] = [
+  "ESL_SC2", "OgamingSC2", "cretetion", "freecodecamp",
+  "storbeck", "habathcx", "RobotCaleb", "noobs2ninjas"
+];
+
 
 const defaultErrorMessage: string = "Unidentified error"; // If API returns an error without a message
 const infoBoxIDPrefix: string = "info-";
@@ -59,6 +66,13 @@ const onlineDummy: APIReturn = {
   }
 };
 
+const offlineTestMode: boolean = false;
+const offlineTestMap: Map<string, APIReturn> = new Map([
+      ["abconline", onlineDummy],
+      ["defnotfound", notFoundDummy],
+      ["ghioffline", offlineDummy]
+]);
+
 // Palette of [colour, background-colour] pairs o use for channels - taken from clrs.cc
 const colours: [string, string][] = [
 /* navy */ // ["#7FDBFF", "#001F3F"], too dark
@@ -70,11 +84,11 @@ const colours: [string, string][] = [
 /* lime */ ["black", "#01FF70"],
 /* yellow */ ["black", "#FFDC00"],
 /* orange */ ["black", "#FF851B"],
-/* red */ ["black", "#FF4136"],
+/* red */ ["black", "#FF4136"]
 /* fuchsia */ // ["black", "#F012BE"] too dark/ugly
 /* purple */ // ["black", "#B10DC9"], too dark/ugly
 /* maroon */ // ["white", "#85144B"],too dark/ugly
-/* white */ // ["white", "#FFFFFF"] /
+/* white */ // ["white", "#FFFFFF"]
 /* silver */ // "#DDDDDD",
 /* gray */ // "#AAAAAA",
 /* black */ // "#111111"
@@ -91,33 +105,18 @@ const offlineColours: [string, string] = ["black", "#DDDDDDD"];
 
 run_when_document_ready(() => {
 
-  let initialChannelNames: string[] = ["superjj102", "amazhs", "jfhjhf", "sjow",  "eloise_ailv"];
-  let trackedChannels: Map<string, APIReturn>;
+  // We use this variable to hold our programme state - it is passed to and modified by
+  // sevral of our main functions. Here we set up the basic values
+  let trackedChannels: Map<string, APIReturn> = setupTrackedChannels();
 
-  if (offlineMode) {
-
-    trackedChannels = new Map([
-      ["superjj102", onlineDummy],
-      ["suqkjfhgjgh", notFoundDummy],
-      ["freecodecamp", offlineDummy]
-    ]);
-    updateDOM(trackedChannels);
-
-  } else {
-
-    let dummyMap: [string, APIReturn][] = initialChannelNames.map((channelName: string) => {
-      let x: [string, APIReturn] = [channelName, offlineDummy];
-      return x;
+  fetchChannels(trackedChannels)
+    .then(() => {
+      setupHandlers(trackedChannels);
+      updateDOM(trackedChannels);
+    })
+    .catch((e: Error) => {
+      console.log("Caught in fetching: ", e);
     });
-    trackedChannels = new Map(dummyMap);
-    fetchChannels(trackedChannels);
-  }
-  setupHandlers(trackedChannels);
-
-
-  // TODO Sort out not doing this until all of trackedChannels is setup
-
-  //
 
 });
 
@@ -177,7 +176,36 @@ interface Channel {
  *
  */
 
-function setupHandlers(channels: Map<string, APIReturn>) {
+function setupTrackedChannels(): Map<string, APIReturn> {
+
+  // If we are in offlineTestMode, just return dummy values
+  if (offlineTestMode) {
+    return offlineTestMap;
+  }
+
+  // If we have storage available and a valid stored value, use it
+  if (storageAvailable("localStorage")) {
+    try {
+      let stored: string[] = JSON.parse(localStorage.getItem(localStorageKey));
+      if (stored && Array.isArray(stored)) {
+        return new Map(stored.map((channelName: string): [string, APIReturn] => [channelName, offlineDummy]));
+      }
+    } catch (e) {
+      console.log("Caugght in storage getting/parsing", e);
+    }
+  }
+
+  // Otherwise, start with the defaults
+  return new Map(defaultChannels.map((channelName: string): [string, APIReturn] => [channelName, offlineDummy]));
+
+}
+
+
+  // TODO Sort out not doing this until all of trackedChannels is setup
+
+  //
+
+function setupHandlers(channels: Map<string, APIReturn>): void {
 
   let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
   onlineFilter.addEventListener("click", () => {
@@ -190,7 +218,7 @@ function setupHandlers(channels: Map<string, APIReturn>) {
   document.querySelector("#refresh-control").addEventListener("click", () => {
     console.log("Calling refresh with", channels);
     fetchChannels(channels);
-  })
+  });
 
   document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
     let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
@@ -206,7 +234,12 @@ function setupHandlers(channels: Map<string, APIReturn>) {
 
 
 // Use the API to update the given map (or create a new one if we are given an array of names)
-function fetchChannels(channels: Map<string, APIReturn>): void {
+function fetchChannels(channels: Map<string, APIReturn>): Promise<void> {
+
+    // Do nothing if we are offline
+    if (offlineTestMap) {
+      return Promise.resolve();
+    }
 
     // Launch one async call for each tracked channel
     let keyValuePromises: Promise<[string, APIReturn]>[] =
@@ -218,21 +251,23 @@ function fetchChannels(channels: Map<string, APIReturn>): void {
           }));
 
     // When all async calls have returned, update the channels object and then the DOM
-    Promise.all(keyValuePromises)
+    return Promise.all(keyValuePromises)
       .then((kvs: [string, APIReturn][]) => {
         console.log("All resolved", kvs);
         kvs.forEach((pair: [string, APIReturn]) => {
           channels.set(pair[0], pair[1]);
-        })
-        updateDOM(channels);
-      })
-      .catch((e: Error) => {
-        console.log(e);
+        });
       });
-
 
 }
 
+
+function saveChannels(channels: Map<string, APIReturn>): void {
+  if (storageAvailable("localStorage")) {
+    let keys: string[] = Array.from(channels.keys());
+    localStorage.setItem(localStorageKey, JSON.stringify(keys));
+  }
+}
 
 // Update the search-results div in the DOM with the new search results
 function updateDOM(channels: Map<string, APIReturn>): void {
@@ -358,6 +393,7 @@ function createDummyChannel(): Node {
 function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
   console.log("Adding", newChannel);
   subs.set(newChannel, offlineDummy);
+  saveChannels(subs);
   updateDOM(subs);
 }
 
@@ -409,4 +445,18 @@ function jsonp<T>(url: string): Promise<T> {
     document.getElementsByTagName("head")[0].appendChild(script);
 
   });
+}
+
+
+// Utility function from MDN that returns true if local storage is available (from MDN)
+function storageAvailable(type: string): boolean {
+  try {
+    let storage: any = (window as any)[type];
+    let x: string = "__storage_test__";
+    storage.setItem(x, x);
+    storage.removeItem(x);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
