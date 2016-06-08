@@ -9,6 +9,7 @@ Hosted at [jw120.github.io](https://jw120.github.io)
 
 TODO
 
+* Better promisfying of startup code
 * Add refresh
 * DONE - Nicer colours
 * Tidy info box output (make sure fits in box for status - variable width boxes?)

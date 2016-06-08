@@ -32,6 +32,11 @@ body {
     font-size: 9pt;
 }
 
+.control-icon {
+    float: right;
+    margin-right: 0.5em;
+}
+
 /* Content below the list of channels - holds additional controls */
 .bottom {
     width: 100%;

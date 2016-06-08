@@ -4,6 +4,11 @@
  *
  */
 
+const apiPrefix: string = "https://api.twitch.tv/kraken/streams/";
+const apiSuffix: string = "?callback="; // Name of the callback is added by fetchJSONP
+
+const offlineMode: boolean = false;
+
 const defaultErrorMessage: string = "Unidentified error"; // If API returns an error without a message
 const infoBoxIDPrefix: string = "info-";
 
@@ -86,55 +91,33 @@ const offlineColours: [string, string] = ["black", "#DDDDDDD"];
 
 run_when_document_ready(() => {
 
-  let initialChannels: string[] = ["superjj102", "amazhs", "jfhjhf", "sjow",  "eloise_ailv"];
-  let trackedChannels: null | Map<string, APIReturn> = null;
+  let initialChannelNames: string[] = ["superjj102", "amazhs", "jfhjhf", "sjow",  "eloise_ailv"];
+  let trackedChannels: Map<string, APIReturn>;
 
-  // // Launch one async call for ach tracked channel
-  // let keyValuePromises: Promise<[string, APIReturn]>[] =
-  //   initialChannels.map((channelName: string) =>
-  //     jsonp<APIReturn>(apiPrefix + channelName + apiSuffix)
-  //       .then((apiReturn: APIReturn) => {
-  //         console.log("Returned from", channelName, apiReturn);
-  //         return [channelName, apiReturn];
-  //       }));
+  if (offlineMode) {
 
-  // // When all async calls have returned, update the DOM
-  // Promise.all(keyValuePromises)
-  //   .then((kvs: [string, APIReturn][]) => {
-  //     console.log("All resolved", kvs);
-  //     trackedChannels = new Map(kvs);
-  //     updateDOM(trackedChannels);
-  //   })
-  //   .catch((e: Error) => {
-  //     console.log(e);
-  //   });
+    trackedChannels = new Map([
+      ["superjj102", onlineDummy],
+      ["suqkjfhgjgh", notFoundDummy],
+      ["freecodecamp", offlineDummy]
+    ]);
+    updateDOM(trackedChannels);
 
-  trackedChannels = new Map([
-    ["superjj102", onlineDummy],
-    ["suqkjfhgjgh", notFoundDummy],
-    ["freecodecamp", offlineDummy]
-  ]);
-  updateDOM(trackedChannels);
+  } else {
+
+    let dummyMap: [string, APIReturn][] = initialChannelNames.map((channelName: string) => {
+      let x: [string, APIReturn] = [channelName, offlineDummy];
+      return x;
+    });
+    trackedChannels = new Map(dummyMap);
+    fetchChannels(trackedChannels);
+  }
+  setupHandlers(trackedChannels);
+
 
   // TODO Sort out not doing this until all of trackedChannels is setup
 
   //
-  let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
-  onlineFilter.addEventListener("click", () => {
-    console.log("onlineFilter", onlineFilter.checked);
-    if (trackedChannels) {
-      updateDOM(trackedChannels);
-    }
-  });
-
-  document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
-    let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
-    if (trackedChannels) {
-      addChannel(trackedChannels, input.value);
-      input.value = "";
-    }
-    event.preventDefault();
-  });
 
 });
 
@@ -194,6 +177,62 @@ interface Channel {
  *
  */
 
+function setupHandlers(channels: Map<string, APIReturn>) {
+
+  let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
+  onlineFilter.addEventListener("click", () => {
+    console.log("onlineFilter", onlineFilter.checked);
+    if (channels) {
+      updateDOM(channels);
+    }
+  });
+
+  document.querySelector("#refresh-control").addEventListener("click", () => {
+    console.log("Calling refresh with", channels);
+    fetchChannels(channels);
+  })
+
+  document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
+    let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
+    if (channels) {
+      addChannel(channels, input.value);
+      input.value = "";
+    }
+    event.preventDefault();
+  });
+
+}
+
+
+
+// Use the API to update the given map (or create a new one if we are given an array of names)
+function fetchChannels(channels: Map<string, APIReturn>): void {
+
+    // Launch one async call for each tracked channel
+    let keyValuePromises: Promise<[string, APIReturn]>[] =
+      Array.from(channels.keys()).map((channelName: string) =>
+        jsonp<APIReturn>(apiPrefix + channelName + apiSuffix)
+          .then((apiReturn: APIReturn) => {
+            console.log("Returned from", channelName, apiReturn);
+            return [channelName, apiReturn];
+          }));
+
+    // When all async calls have returned, update the channels object and then the DOM
+    Promise.all(keyValuePromises)
+      .then((kvs: [string, APIReturn][]) => {
+        console.log("All resolved", kvs);
+        kvs.forEach((pair: [string, APIReturn]) => {
+          channels.set(pair[0], pair[1]);
+        })
+        updateDOM(channels);
+      })
+      .catch((e: Error) => {
+        console.log(e);
+      });
+
+
+}
+
 
 // Update the search-results div in the DOM with the new search results
 function updateDOM(channels: Map<string, APIReturn>): void {
@@ -241,13 +280,6 @@ function createChannel(channelName: string, stream: Stream | string, col: [strin
   box.className = "channel " + (typeof stream === "string" ? (stream === "" ? "offline" : "error") : "online");
   box.style.color = col[0];
   box.style.backgroundColor = col[1];
-  if (typeof stream !== "string") {
-    box.addEventListener("click", () => {
-      console.log("Click on", channelName);
-      let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
-      e.style.display = e.style.display === "none" ? "flex" : "none";
-    });
-  }
 
   // Top part of box is always visible - logo on the left (if online), name on right
   let topBox: HTMLDivElement = document.createElement("div");
@@ -274,6 +306,12 @@ function createChannel(channelName: string, stream: Stream | string, col: [strin
     anchor.appendChild(document.createTextNode(channelName));
     anchor.href = stream.channel.url;
     rightBox.appendChild(anchor);
+    box.addEventListener("click", (ev: Event) => {
+      if (ev.target !== anchor) { // Reveal the info box unless the click was on the anchor link
+        let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
+        e.style.display = e.style.display === "none" ? "flex" : "none";
+      }
+    });
   }
   topBox.appendChild(rightBox);
 

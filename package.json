@@ -7,7 +7,9 @@
     "url": "http://github.com/jw120/fcc-twitch.git"
   },
   "main": "index.html",
-  "dependencies": {},
+  "dependencies": {
+    "font-awesome": "^4.6.3"
+  },
   "devDependencies": {
     "tslint": "next",
     "typescript": "next"
