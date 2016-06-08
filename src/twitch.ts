@@ -4,35 +4,18 @@
  *
  */
 
-
-// Used to build the URI for the Wikipedia API call
-// Full URL used for the API is
-//
-// apiPrefix + <query-string> + apiSuffix + <callback-function-name>
-//
-// const apiPrefix: string = "https://api.twitch.tv/kraken/streams/";
-// const apiSuffix: string = "?callback="; // Name of the callback is added by fetchJSONP
-
-
-// const offlineMessage: string = "Offline";
 const defaultErrorMessage: string = "Unidentified error"; // If API returns an error without a message
 const infoBoxIDPrefix: string = "info-";
 
 // Test data
 const offlineDummy: APIReturn = {
-  stream: null,
-  _links: {
-    self: "https://api.twitch.tv/kraken/streams/freecodecamp",
-    channel: "https://api.twitch.tv/kraken/channels/freecodecamp"
-  },
-  requested: "freecodecamp"
+  stream: null
 };
 
 const notFoundDummy: APIReturn = {
   error: "Not Found",
   message: "Channel 'suqkjfhkqjfh' does not exist",
-  status: 404,
-  requested: "suqkjfhkqjfh"
+  status: 404
 };
 
 const onlineDummy: APIReturn = {
@@ -45,15 +28,6 @@ const onlineDummy: APIReturn = {
     average_fps: 30,
     delay: 0,
     is_playlist: false,
-    _links: {
-      self: "https://api.twitch.tv/kraken/streams/superjj102"
-    },
-    preview: {
-      small: "https://static-cdn.jtvnw.net/previews-ttv/live_user_superjj102-80x45.jpg",
-      medium: "https://static-cdn.jtvnw.net/previews-ttv/live_user_superjj102-320x180.jpg",
-      large: "https://static-cdn.jtvnw.net/previews-ttv/live_user_superjj102-640x360.jpg",
-      template: "https://static-cdn.jtvnw.net/previews-ttv/live_user_superjj102-{width}x{height}.jpg"
-    },
     channel: {
       mature: false,
       status: "[coL] Superjj - The miracle master",
@@ -75,33 +49,32 @@ const onlineDummy: APIReturn = {
       partner: true,
       url: "https://www.twitch.tv/superjj102",
       views: 1635891,
-      followers: 33864,
-      _links: {
-        self: "http://api.twitch.tv/kraken/channels/superjj102",
-        follows: "http://api.twitch.tv/kraken/channels/superjj102/follows",
-        commercial: "http://api.twitch.tv/kraken/channels/superjj102/commercial",
-        stream_key: "http://api.twitch.tv/kraken/channels/superjj102/stream_key",
-        chat: "http://api.twitch.tv/kraken/chat/superjj102",
-        features: "http://api.twitch.tv/kraken/channels/superjj102/features",
-        subscriptions: "http://api.twitch.tv/kraken/channels/superjj102/subscriptions",
-        editors: "http://api.twitch.tv/kraken/channels/superjj102/editors",
-        teams: "http://api.twitch.tv/kraken/channels/superjj102/teams",
-        videos: "http://api.twitch.tv/kraken/channels/superjj102/videos"
-      }
+      followers: 33864
     }
-  },
-  _links: {
-    self: "https://api.twitch.tv/kraken/streams/superjj102",
-    channel: "https://api.twitch.tv/kraken/channels/superjj102"
-  },
-  requested: "superjj102"
+  }
 };
 
-/**
- *
- * Global variable (our state)
- *
- */
+// Palette of [colour, background-colour] pairs o use for channels - taken from clrs.cc
+const colours: [string, string][] = [
+/* navy */ // ["#7FDBFF", "#001F3F"], too dark
+/* blue */ ["black", "#0074D9"],
+/* aqua */ ["black", "#7FDBFF"],
+/* teal */ ["black", "#39CCCC"],
+/* olive */ // "#3D9970", removed as clashes with header
+/* green */ ["black", "#2ECC40"],
+/* lime */ ["black", "#01FF70"],
+/* yellow */ ["black", "#FFDC00"],
+/* orange */ ["black", "#FF851B"],
+/* red */ ["black", "#FF4136"],
+/* fuchsia */ // ["black", "#F012BE"] too dark/ugly
+/* purple */ // ["black", "#B10DC9"], too dark/ugly
+/* maroon */ // ["white", "#85144B"],too dark/ugly
+/* white */ // ["white", "#FFFFFF"] /
+/* silver */ // "#DDDDDD",
+/* gray */ // "#AAAAAA",
+/* black */ // "#111111"
+];
+const offlineColours: [string, string] = ["black", "#DDDDDDD"];
 
 
 /*
@@ -114,9 +87,9 @@ const onlineDummy: APIReturn = {
 run_when_document_ready(() => {
 
   let initialChannels: string[] = ["superjj102", "amazhs", "jfhjhf", "sjow",  "eloise_ailv"];
-  let subscribedChannels: null | Map<string, APIReturn> = null;
+  let trackedChannels: null | Map<string, APIReturn> = null;
 
-  // // Launch one async call for ach subscribed channel
+  // // Launch one async call for ach tracked channel
   // let keyValuePromises: Promise<[string, APIReturn]>[] =
   //   initialChannels.map((channelName: string) =>
   //     jsonp<APIReturn>(apiPrefix + channelName + apiSuffix)
@@ -129,35 +102,35 @@ run_when_document_ready(() => {
   // Promise.all(keyValuePromises)
   //   .then((kvs: [string, APIReturn][]) => {
   //     console.log("All resolved", kvs);
-  //     subscribedChannels = new Map(kvs);
-  //     updateDOM(subscribedChannels);
+  //     trackedChannels = new Map(kvs);
+  //     updateDOM(trackedChannels);
   //   })
   //   .catch((e: Error) => {
   //     console.log(e);
   //   });
 
-  subscribedChannels = new Map([
+  trackedChannels = new Map([
     ["superjj102", onlineDummy],
     ["suqkjfhgjgh", notFoundDummy],
     ["freecodecamp", offlineDummy]
   ]);
-  updateDOM(subscribedChannels);
+  updateDOM(trackedChannels);
 
-  // TODO Sort out not doing this until all of subscribedChannels is setup
+  // TODO Sort out not doing this until all of trackedChannels is setup
 
   //
   let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
   onlineFilter.addEventListener("click", () => {
     console.log("onlineFilter", onlineFilter.checked);
-    if (subscribedChannels) {
-      updateDOM(subscribedChannels);
+    if (trackedChannels) {
+      updateDOM(trackedChannels);
     }
   });
 
   document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
     let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
-    if (subscribedChannels) {
-      addChannel(subscribedChannels, input.value);
+    if (trackedChannels) {
+      addChannel(trackedChannels, input.value);
       input.value = "";
     }
     event.preventDefault();
@@ -173,17 +146,12 @@ run_when_document_ready(() => {
  */
 
 
-// Type of the raw JSON result from the API call
-type RawSearchResult = (string | string[])[];
-
 // Type for the parsed API return for an offline stream
 interface APIReturn {
   error?: string;
   message?: string;
   status?: number;
-  _links?: any; // We don't use these
   stream?: null | Stream;
-  requested: string; // We add this to hold the value we requested
 }
 
 interface Stream {
@@ -196,8 +164,6 @@ interface Stream {
   created_at: string; // ISO date format, e.g., "2015-02-12T04:42:31Z",
   _id: number;
   channel: Channel;
-  _links: any;
-  preview: any;
 }
 
 interface Channel {
@@ -206,7 +172,6 @@ interface Channel {
   broadcaster_language: string; // e.g. "en"
   display_name: string;
   game: string;
-  delay: any; // ?
   language: string; // e.g., "en",
   _id: number;
   name: string;
@@ -215,15 +180,13 @@ interface Channel {
   logo: string; // URL for image
   banner: null | string; // URL for image
   video_banner: string; // URL for image
-  background: any; // ?
   profile_banner: string; // URL for image
-  profile_banner_background_color: any; // ?
   partner: boolean;
   url: string;
   views: number;
   followers: number;
-  _links: any; // We don't use these
 }
+
 
 /*
  *
@@ -242,19 +205,22 @@ function updateDOM(channels: Map<string, APIReturn>): void {
     list.removeChild(list.firstChild);
   }
 
+  let colIndex: number = 0;
+
   // Add each of the search results
   channels.forEach((res: APIReturn, channelName: string): void => {
 
     if (res.error) {
       if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
-        list.appendChild(createChannel(channelName, res.message || defaultErrorMessage));
+        list.appendChild(createChannel(channelName, res.message || defaultErrorMessage, offlineColours));
       }
     } else if (!res.stream) {
       if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
-        list.appendChild(createChannel(channelName, ""));
+        list.appendChild(createChannel(channelName, "", offlineColours));
       }
     } else {
-      list.appendChild(createChannel(channelName, res.stream));
+      list.appendChild(createChannel(channelName, res.stream, colours[colIndex]));
+      colIndex = (colIndex + 1) % colours.length;
     }
 
   });
@@ -268,11 +234,13 @@ function updateDOM(channels: Map<string, APIReturn>): void {
 
 // Create a DOM node representing a channel, takes the name of the channel and either its
 // Stream or an error message (an empty string if offline)
-function createChannel(channelName: string, stream: Stream | string): Node {
+function createChannel(channelName: string, stream: Stream | string, col: [string, string]): Node {
 
   // Top-level box
-  let box: Element = document.createElement("div");
+  let box: HTMLDivElement = document.createElement("div");
   box.className = "channel " + (typeof stream === "string" ? (stream === "" ? "offline" : "error") : "online");
+  box.style.color = col[0];
+  box.style.backgroundColor = col[1];
   if (typeof stream !== "string") {
     box.addEventListener("click", () => {
       console.log("Click on", channelName);
@@ -301,8 +269,10 @@ function createChannel(channelName: string, stream: Stream | string): Node {
     rightBox.appendChild(document.createTextNode(text));
   } else {
     let anchor: HTMLAnchorElement = document.createElement("a");
+    anchor.className = "channel-link";
+    anchor.style.color = col[0];
     anchor.appendChild(document.createTextNode(channelName));
-    anchor.href = stream._links.self;
+    anchor.href = stream.channel.url;
     rightBox.appendChild(anchor);
   }
   topBox.appendChild(rightBox);
@@ -316,7 +286,7 @@ function createChannel(channelName: string, stream: Stream | string): Node {
     addInfoItem(infoBox, "Game", stream.channel.game);
     addInfoItem(infoBox, "Status", stream.channel.status);
     addInfoItem(infoBox, "Viewers", stream.viewers.toString());
-    addInfoItem(infoBox, "Delay", stream.channel.delay || "-");
+    // addInfoItem(infoBox, "Delay", stream.channel.delay || "-");
     addInfoItem(infoBox, "Video", stream.video_height + "px, " + stream.average_fps + "fps");
   }
   box.appendChild(infoBox);
@@ -347,54 +317,11 @@ function createDummyChannel(): Node {
 
 }
 
-function addChannel(subs: Map<string, APIReturn>, newChannel: string) {
+function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
   console.log("Adding", newChannel);
   subs.set(newChannel, offlineDummy);
   updateDOM(subs);
 }
-
-/**
- *
- * Helper function
- *
- */
-
-
-// Validate that the raw result of the JSON parsing has the expected format, then convert to our
-// tidier search result type
-// function validateResult(raw: RawSearchResult): APIReturn {
-
-//   return offlineDummy;
-// /*
-
-//   if (Array.isArray(raw) &&
-
-//       raw.length === 4 &&
-//       typeof raw[0] === "string" &&
-//       Array.isArray(raw[1]) &&
-//       raw[1].every((x: string) => typeof x === "string")   &&
-//       Array.isArray(raw[2]) &&
-//       raw[2].every((x: string) => typeof x === "string")   &&
-//       Array.isArray(raw[3]) &&
-//       raw[3].every((x: string) => typeof x === "string")   &&
-//       raw[1].length === raw[2].length &&
-//       raw[2].length === raw[3].length) {
-
-//     return {
-//       query: raw[0],
-//       titles: raw[1],
-//       firstParas: raw[2],
-//       urls: raw[3]
-//      };
-
-//    } else {
-
-//      throw Error("Invalid search result");
-
-//   }
-//   */
-
-// }
 
 
 /*

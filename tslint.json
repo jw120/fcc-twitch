@@ -6,13 +6,7 @@
       "arguments",
       "statements"
     ],
-    "ban": [
-      true,
-      [ "_", "forEach" ],
-      [ "_", "each" ],
-      [ "$", "each" ],
-      [ "angular", "forEach" ]
-    ],
+    "ban": false,
     "class-name": true,
     "comment-format": [
       true,
@@ -34,16 +28,12 @@
     "label-undefined": true,
     "max-line-length": [
       true,
-      1400
+      200
     ],
     "member-access": true,
-    "member-ordering": [
-      true,
-      { "order": "fields-first" }
-    ],
     "new-parens": true,
     "no-angle-bracket-type-assertion": true,
-    "no-any": false,
+    "no-any": false, // We need these for jsonp callback shenanigans with the window object
     "no-arg": true,
     "no-bitwise": true,
     "no-conditional-assignment": true,
@@ -110,11 +100,8 @@
         "singleline": "never"
       }
     ],
-    "triple-equals": [
+    "triple-equals":
       true,
-      "allow-null-check",
-      "allow-undefined-check"
-    ],
     "typedef": [
       true,
       "call-signature",
