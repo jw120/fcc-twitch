@@ -4,7 +4,6 @@ body {
 
 /* Contains all of our content (except footer) */
 .overall {
-    padding-top: 2em;
     max-width: 40em;
     margin-left: auto;
     margin-right: auto;
@@ -62,6 +61,14 @@ body {
     align-items: flex-start;
     min-width: 300px;
     /*border: 3px solid white;*/
+}
+
+.no-channels-message-box {
+    width: 100%;
+    text-align: center;
+    padding-top: 1em;
+    height: 3em;
+    background-color: #3D9970;
 }
 
 /* Style for each channel */
@@ -127,11 +134,15 @@ body {
 }
 
 .channel-info {
-    height: 16em;
+    height: 250px;
     width: 100%;
     flex-direction: column;
     justify-content: space-around;
     align-items: center;
+}
+
+.channel-info.offline {
+    justify-content: flex-start;
 }
 
 .channel-info-item {
@@ -149,6 +160,25 @@ body {
     font-size: 10pt;
     margin: 0px;
     text-align: center;
+}
+
+.remove-box {
+    width: 95%;
+    height: 2em;
+    font-size: 12pt;
+}
+
+.remove-icon {
+    float: right;
+    margin-top: 0.7em;
+    margin-right: 0.3em;
+}
+
+.remove-label {
+    float: right;
+    margin-right: 0.5em;
+    margin-top: 1em;
+    font-size: 9pt;
 }
 
 .footer {

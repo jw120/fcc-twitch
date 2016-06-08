@@ -66,7 +66,7 @@ const onlineDummy: APIReturn = {
   }
 };
 
-const offlineTestMode: boolean = false;
+const offlineTestMode: boolean = true;
 const offlineTestMap: Map<string, APIReturn> = new Map([
       ["abconline", onlineDummy],
       ["defnotfound", notFoundDummy],
@@ -107,16 +107,12 @@ run_when_document_ready(() => {
 
   // We use this variable to hold our programme state - it is passed to and modified by
   // sevral of our main functions. Here we set up the basic values
-  let trackedChannels: Map<string, APIReturn> = setupTrackedChannels();
+  let trackedChannels: Map<string, APIReturn> = initializeTrackedChannels();
+
+  setupHandlers(trackedChannels);
 
   fetchChannels(trackedChannels)
-    .then(() => {
-      setupHandlers(trackedChannels);
-      updateDOM(trackedChannels);
-    })
-    .catch((e: Error) => {
-      console.log("Caught in fetching: ", e);
-    });
+    .then(() => updateDOM(trackedChannels));
 
 });
 
@@ -176,7 +172,7 @@ interface Channel {
  *
  */
 
-function setupTrackedChannels(): Map<string, APIReturn> {
+function initializeTrackedChannels(): Map<string, APIReturn> {
 
   // If we are in offlineTestMode, just return dummy values
   if (offlineTestMode) {
@@ -187,12 +183,15 @@ function setupTrackedChannels(): Map<string, APIReturn> {
   if (storageAvailable("localStorage")) {
     try {
       let stored: string[] = JSON.parse(localStorage.getItem(localStorageKey));
+      console.log("Read from localStorage", stored);
       if (stored && Array.isArray(stored)) {
         return new Map(stored.map((channelName: string): [string, APIReturn] => [channelName, offlineDummy]));
       }
     } catch (e) {
       console.log("Caugght in storage getting/parsing", e);
     }
+  } else {
+      console.log("No storage to read");
   }
 
   // Otherwise, start with the defaults
@@ -266,6 +265,9 @@ function saveChannels(channels: Map<string, APIReturn>): void {
   if (storageAvailable("localStorage")) {
     let keys: string[] = Array.from(channels.keys());
     localStorage.setItem(localStorageKey, JSON.stringify(keys));
+    console.log("Wrote to localStorage", keys);
+  } else {
+    console.log("No storage to write to");
   }
 }
 
@@ -282,22 +284,34 @@ function updateDOM(channels: Map<string, APIReturn>): void {
   let colIndex: number = 0;
 
   // Add each of the search results
+  let channelsShown: number = 0;
   channels.forEach((res: APIReturn, channelName: string): void => {
 
     if (res.error) {
       if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
-        list.appendChild(createChannel(channelName, res.message || defaultErrorMessage, offlineColours));
+        list.appendChild(createChannel(channelName, channels, res.message || defaultErrorMessage, offlineColours));
+        channelsShown++;
       }
     } else if (!res.stream) {
       if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
-        list.appendChild(createChannel(channelName, "", offlineColours));
+        list.appendChild(createChannel(channelName, channels, "", offlineColours));
+        channelsShown++;
       }
     } else {
-      list.appendChild(createChannel(channelName, res.stream, colours[colIndex]));
+      list.appendChild(createChannel(channelName, channels, res.stream, colours[colIndex]));
       colIndex = (colIndex + 1) % colours.length;
+      channelsShown++;
     }
 
   });
+
+  console.log("Displaying", channelsShown);
+  if (channelsShown === 0) {
+    let msg: HTMLDivElement = document.createElement("div");
+    msg.className = "no-channels-message-box";
+    msg.appendChild(document.createTextNode("No tracked channels"));
+    list.appendChild(msg);
+  }
 
   // Add dummy channels at the end
   for (let i: number = 0; i < 4; i++) {
@@ -308,7 +322,7 @@ function updateDOM(channels: Map<string, APIReturn>): void {
 
 // Create a DOM node representing a channel, takes the name of the channel and either its
 // Stream or an error message (an empty string if offline)
-function createChannel(channelName: string, stream: Stream | string, col: [string, string]): Node {
+function createChannel(channelName: string, channels: Map<string, APIReturn>, stream: Stream | string, col: [string, string]): Node {
 
   // Top-level box
   let box: HTMLDivElement = document.createElement("div");
@@ -322,7 +336,7 @@ function createChannel(channelName: string, stream: Stream | string, col: [strin
   box.appendChild(topBox);
   let leftBox: HTMLDivElement = document.createElement("div");
   leftBox.className = "channel-top-left";
-  if (typeof stream !== "string" && stream.channel && stream.channel.logo) {
+  if (!offlineTestMode && typeof stream !== "string" && stream.channel && stream.channel.logo) {
       let logo: HTMLImageElement = document.createElement("img");
       logo.className = "channel-logo";
       logo.src = stream.channel.logo;
@@ -331,28 +345,32 @@ function createChannel(channelName: string, stream: Stream | string, col: [strin
   topBox.appendChild(leftBox);
   let rightBox: HTMLDivElement = document.createElement("div");
   rightBox.className = "channel-top-right";
+  let anchor: HTMLAnchorElement | null = null;
   if (typeof stream === "string") {
     let text: string = stream === "" ? channelName : (stream + " (" + channelName + ")");
     rightBox.appendChild(document.createTextNode(text));
   } else {
-    let anchor: HTMLAnchorElement = document.createElement("a");
+    anchor = document.createElement("a");
     anchor.className = "channel-link";
     anchor.style.color = col[0];
     anchor.appendChild(document.createTextNode(channelName));
     anchor.href = stream.channel.url;
     rightBox.appendChild(anchor);
-    box.addEventListener("click", (ev: Event) => {
-      if (ev.target !== anchor) { // Reveal the info box unless the click was on the anchor link
-        let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
+  }
+  box.addEventListener("click", (ev: Event) => {
+    if (ev.target !== anchor) { // Reveal the info box unless the click was on the anchor link
+      let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
+      if (e) {
         e.style.display = e.style.display === "none" ? "flex" : "none";
       }
-    });
-  }
+    }
+  });
+
   topBox.appendChild(rightBox);
 
   // Bottom part has its display changed on click
   let infoBox: HTMLDivElement = document.createElement("div");
-  infoBox.className = "channel-info";
+  infoBox.className = "channel-info" + (typeof stream === "string" ? " offline" : "");
   infoBox.id = infoBoxIDPrefix + channelName;
   infoBox.style.display = "none";
   if (typeof stream !== "string") {
@@ -362,6 +380,19 @@ function createChannel(channelName: string, stream: Stream | string, col: [strin
     // addInfoItem(infoBox, "Delay", stream.channel.delay || "-");
     addInfoItem(infoBox, "Video", stream.video_height + "px, " + stream.average_fps + "fps");
   }
+  let removeBox: HTMLDivElement = document.createElement("div");
+  removeBox.className = "remove-box";
+  let removeIcon: HTMLElement = document.createElement("i");
+  removeIcon.className = "fa fa-times remove-icon";
+  removeBox.appendChild(removeIcon);
+  let removeLabel: HTMLSpanElement = document.createElement("span");
+  removeLabel.className = "remove-label";
+  removeLabel.appendChild(document.createTextNode("Remove channel"));
+  removeBox.appendChild(removeLabel);
+  infoBox.appendChild(removeBox);
+  removeIcon.addEventListener("click", () => {
+    removeChannel(channels, channelName);
+  });
   box.appendChild(infoBox);
 
   return box;
@@ -395,6 +426,12 @@ function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
   subs.set(newChannel, offlineDummy);
   saveChannels(subs);
   updateDOM(subs);
+}
+
+function removeChannel(channels: Map<string, APIReturn>, channelName: string): void {
+  channels.delete(channelName);
+  saveChannels(channels);
+  updateDOM(channels);
 }
 
 
