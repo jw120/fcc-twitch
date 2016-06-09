@@ -245,6 +245,9 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
     target.value = ""; // Remove the filename shown in the control
   });
 
+  document.querySelector("#share-control").addEventListener("click", (): void => {
+    shareChannels(channels);
+  });
 }
 
 
@@ -370,7 +373,7 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
     anchor = document.createElement("a");
     anchor.className = "channel-link";
     anchor.style.color = col[0];
-    anchor.appendChild(document.createTextNode(stream.channel.name));
+    anchor.appendChild(document.createTextNode(stream.channel.display_name));
     anchor.href = stream.channel.url;
     rightBox.appendChild(anchor);
   }
@@ -440,7 +443,7 @@ function createDummyChannel(): Node {
 
 function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
   console.log("Adding", newChannel);
-  let cleanedName = newChannel.trim().toLowerCase();
+  let cleanedName: string = newChannel.trim().toLowerCase();
   if (!subs.has(cleanedName)) {
     subs.set(cleanedName, offlineDummy);
     saveChannels(subs);
@@ -485,6 +488,11 @@ function addChannelsFromFile(channels: Map<string, APIReturn>, files: FileList):
       .then((): void => updateDOM(channels));
   };
   reader.readAsText(file);
+}
+
+function shareChannels(channels: Map<string, APIReturn>): void {
+  let exportText: string = Array.from(channels.keys()).join("\n");
+  window.prompt("Text below is ready for copy/paste:", exportText);
 }
 
 

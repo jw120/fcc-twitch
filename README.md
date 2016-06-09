@@ -19,14 +19,14 @@ TODO
 * Functionality
 
   + Tidy info box output (handle wide status and channel names better)
-  + Add share (=show and put onto clipboard?) of tracked channels
+  + DONE Add share (=show and put onto clipboard?) of tracked channels
   * DONE Better promisfying of startup code
   * DONE Add refresh
   * DONE Nicer colours
   * DONE Add saving to localStorage
   * DONE Add delete
-  * DONE - Make final row boxes have equal width (like in portfolio)
-  * DONE - Add importing of tracked channels
+  * DONE Make final row boxes have equal width (like in portfolio)
+  * DONE Add importing of tracked channels
   * DONE Add filtering
   * DONE Add adding a channel
   * DONE Add a message if no channels
