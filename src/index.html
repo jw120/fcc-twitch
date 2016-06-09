@@ -22,8 +22,8 @@
             <span class="online-filter-label">
                 Show only online channels
             </span>
+            <i class="fa fa-plus control-icon" id="add-control" aria-hidden="true"></i>
             <i class="fa fa-share control-icon" id="share-control" aria-hidden="true"></i>
-            <i class="fa fa-upload control-icon" id="upload-control" aria-hidden="true"></i>
             <i class="fa fa-refresh control-icon" id="refresh-control" aria-hidden="true"></i>
 
         </div> <!-- top -->
@@ -36,12 +36,17 @@
         </div> <!-- list -->
 
         <div class="bottom">
-            <form class="add-form">
-                <input type="text" placeholder="Track an additional channel" id="add-input">
-             </form>
-            <input type="file" multiple=false id="add-file">
+            <div class="bottom-row">
+                <span class="bottom-label">Add a single channel</span>
+                <form class="add-form">
+                    <input type="text" placeholder="Channel" id="add-input">
+                </form>
+             </div> <!-- bottom-row -->
+             <div class="bottom-row">
+                <span class="bottom-label">Add channels from a text file</span>
+                <input type="file" multiple=false id="add-file">
+             </div> <!-- bottom-row -->
         </div> <!-- bottom ->
-
 
     </div>
     <!-- overall -->

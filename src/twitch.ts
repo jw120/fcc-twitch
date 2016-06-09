@@ -4,6 +4,9 @@
  *
  */
 
+const offlineTestMode: boolean = false;
+
+
 const apiPrefix: string = "https://api.twitch.tv/kraken/streams/";
 const apiSuffix: string = "?callback="; // Name of the callback is added by fetchJSONP
 
@@ -66,7 +69,6 @@ const onlineDummy: APIReturn = {
   }
 };
 
-const offlineTestMode: boolean = true;
 const offlineTestMap: Map<string, APIReturn> = new Map([
       ["abconline", onlineDummy],
       ["defnotfound", notFoundDummy],
@@ -220,6 +222,12 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
       .then(() => updateDOM(channels));
   });
 
+  document.querySelector("#add-control").addEventListener("click", () => {
+    let bottom: HTMLDivElement = document.querySelector(".bottom") as HTMLDivElement;
+    console.log("Clicked added", bottom.style, bottom.style.display, "!");
+    bottom.style.display= bottom.style.display === "block" ? "none" : "block";
+  });
+
   document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
     let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
     if (channels) {
@@ -230,7 +238,10 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
   });
 
   document.querySelector("#add-file").addEventListener("change", (event: Event) => {
-    addChannelsFromFile(channels, (event.target as HTMLInputElement).files);
+    let target: HTMLInputElement = event.target as HTMLInputElement;
+    let fileList: FileList = target.files;
+    addChannelsFromFile(channels, fileList);
+    target.value = ""; // Remove the filename shown in the control
   });
 
 }
@@ -241,7 +252,7 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
 function fetchChannels(channels: Map<string, APIReturn>): Promise<void> {
 
     // Do nothing if we are offline
-    if (offlineTestMap) {
+    if (offlineTestMode) {
       return Promise.resolve();
     }
 
@@ -383,7 +394,7 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
     addInfoItem(infoBox, "Status", stream.channel.status);
     addInfoItem(infoBox, "Viewers", stream.viewers.toString());
     // addInfoItem(infoBox, "Delay", stream.channel.delay || "-");
-    addInfoItem(infoBox, "Video", stream.video_height + "px, " + stream.average_fps + "fps");
+    addInfoItem(infoBox, "Video", stream.video_height + "px, " + stream.average_fps.toFixed(0) + "fps");
   }
   let removeBox: HTMLDivElement = document.createElement("div");
   removeBox.className = "remove-box";
@@ -428,7 +439,7 @@ function createDummyChannel(): Node {
 
 function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
   console.log("Adding", newChannel);
-  if (!subs.has(newChannel) {
+  if (!subs.has(newChannel)) {
     subs.set(newChannel, offlineDummy);
     saveChannels(subs);
     fetchChannels(subs)
@@ -449,7 +460,7 @@ function addChannelsFromFile(channels: Map<string, APIReturn>, files: FileList):
     console.log("Empty FileList in addChannelsFromFile");
     return;
   } else if (files.length > 1) {
-    console.log("Unexpected extra files ignored in addChannelsFromFile", files.length)
+    console.log("Unexpected extra files ignored in addChannelsFromFile", files.length);
   }
 
   let file: File = files.item(0);
@@ -462,7 +473,7 @@ function addChannelsFromFile(channels: Map<string, APIReturn>, files: FileList):
     let newChannels: string[] = fileContents
       .split("\n")
       .map((name: string) => name.trim())
-      .filter((name: string) => name !== "")
+      .filter((name: string) => name !== "");
     console.log("Adding", newChannels);
     newChannels.forEach((name: string) => {
       channels.set(name, offlineDummy);

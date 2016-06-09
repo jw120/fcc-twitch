@@ -40,12 +40,26 @@ body {
 .bottom {
     width: 100%;
     background-color: #3D9970;
+    display: none; /* Toggled on/off in javascript */
+    font-size: 9pt;
     /*margin-top: -16px;*/
     /*border: 3px solid white;*/
 }
 
+.bottom-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-content: center;
+}
+
+.bottom-label {
+    width: 13em;
+    margin-left: 1em;
+    margin-top: 1em;
+}
+
 .bottom input {
-    font-size: 10pt;
     margin-left: 1em;
     margin-bottom: 1em;
     margin-top: 1em;
