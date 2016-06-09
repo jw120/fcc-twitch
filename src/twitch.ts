@@ -216,7 +216,8 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
 
   document.querySelector("#refresh-control").addEventListener("click", () => {
     console.log("Calling refresh with", channels);
-    fetchChannels(channels);
+    fetchChannels(channels)
+      .then(() => updateDOM(channels));
   });
 
   document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
@@ -226,6 +227,10 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
       input.value = "";
     }
     event.preventDefault();
+  });
+
+  document.querySelector("#add-file").addEventListener("change", (event: Event) => {
+    addChannelsFromFile(channels, (event.target as HTMLInputElement).files);
   });
 
 }
@@ -423,15 +428,50 @@ function createDummyChannel(): Node {
 
 function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
   console.log("Adding", newChannel);
-  subs.set(newChannel, offlineDummy);
-  saveChannels(subs);
-  updateDOM(subs);
+  if (!subs.has(newChannel) {
+    subs.set(newChannel, offlineDummy);
+    saveChannels(subs);
+    fetchChannels(subs)
+      .then(() => updateDOM(subs));
+    updateDOM(subs);
+  }
 }
 
 function removeChannel(channels: Map<string, APIReturn>, channelName: string): void {
   channels.delete(channelName);
   saveChannels(channels);
   updateDOM(channels);
+}
+
+function addChannelsFromFile(channels: Map<string, APIReturn>, files: FileList): void {
+
+  if (files.length === 0) {
+    console.log("Empty FileList in addChannelsFromFile");
+    return;
+  } else if (files.length > 1) {
+    console.log("Unexpected extra files ignored in addChannelsFromFile", files.length)
+  }
+
+  let file: File = files.item(0);
+  console.log("About to read from", file.name);
+
+  let reader: FileReader = new FileReader();
+  reader.onload = (ev: Event) => {
+    let fileContents: string = (ev.target as any).result;
+    console.log("Reading from", fileContents);
+    let newChannels: string[] = fileContents
+      .split("\n")
+      .map((name: string) => name.trim())
+      .filter((name: string) => name !== "")
+    console.log("Adding", newChannels);
+    newChannels.forEach((name: string) => {
+      channels.set(name, offlineDummy);
+    });
+    saveChannels(channels);
+    fetchChannels(channels)
+      .then(() => updateDOM(channels));
+  };
+  reader.readAsText(file);
 }
 
 

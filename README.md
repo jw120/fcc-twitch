@@ -9,6 +9,7 @@ Hosted at [jw120.github.io](https://jw120.github.io)
 
 TODO
 
+* Make file input prettier - can we change/hide labels? Or add a pane below for adding?
 * Tidy file - better sections, subfiles? and use JSDOC?
 * DONE Better promisfying of startup code
 * DONE Add refresh
@@ -17,7 +18,7 @@ TODO
 * DONE Add delete
 * Tidy info box output (make sure fits in box for status - variable width boxes?)
 * DONE - Make final row boxes have equal width (like in portfolio)
-* Add importing of tracked channels
+* DONE - Add importing of tracked channels
 * Add share (=show and put onto clipboard) of tracked channels
 * DONE Add filtering
 * DONE Add adding a channel
