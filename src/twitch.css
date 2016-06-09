@@ -37,7 +37,7 @@ body {
 }
 
 /* Content below the list of channels - holds additional controls */
-.bottom {
+#bottom-box {
     width: 100%;
     background-color: #3D9970;
     display: none; /* Toggled on/off in javascript */
@@ -59,7 +59,7 @@ body {
     margin-top: 1em;
 }
 
-.bottom input {
+.bottom-row input {
     margin-left: 1em;
     margin-bottom: 1em;
     margin-top: 1em;

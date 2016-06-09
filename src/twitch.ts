@@ -78,7 +78,7 @@ const offlineTestMap: Map<string, APIReturn> = new Map([
 // Palette of [colour, background-colour] pairs o use for channels - taken from clrs.cc
 const colours: [string, string][] = [
 /* navy */ // ["#7FDBFF", "#001F3F"], too dark
-/* blue */ ["black", "#0074D9"],
+/* blue */ // ["black", "#0074D9"],
 /* aqua */ ["black", "#7FDBFF"],
 /* teal */ ["black", "#39CCCC"],
 /* olive */ // "#3D9970", removed as clashes with header
@@ -105,7 +105,7 @@ const offlineColours: [string, string] = ["black", "#DDDDDDD"];
  */
 
 
-run_when_document_ready(() => {
+run_when_document_ready((): void => {
 
   // We use this variable to hold our programme state - it is passed to and modified by
   // sevral of our main functions. Here we set up the basic values
@@ -114,7 +114,7 @@ run_when_document_ready(() => {
   setupHandlers(trackedChannels);
 
   fetchChannels(trackedChannels)
-    .then(() => updateDOM(trackedChannels));
+    .then((): void => updateDOM(trackedChannels));
 
 });
 
@@ -209,7 +209,7 @@ function initializeTrackedChannels(): Map<string, APIReturn> {
 function setupHandlers(channels: Map<string, APIReturn>): void {
 
   let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
-  onlineFilter.addEventListener("click", () => {
+  onlineFilter.addEventListener("click", (): void => {
     console.log("onlineFilter", onlineFilter.checked);
     if (channels) {
       updateDOM(channels);
@@ -219,16 +219,17 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
   document.querySelector("#refresh-control").addEventListener("click", () => {
     console.log("Calling refresh with", channels);
     fetchChannels(channels)
-      .then(() => updateDOM(channels));
+      .then((): void => updateDOM(channels));
   });
 
-  document.querySelector("#add-control").addEventListener("click", () => {
-    let bottom: HTMLDivElement = document.querySelector(".bottom") as HTMLDivElement;
+  document.querySelector("#add-control").addEventListener("click", (): void => {
+    let bottom: HTMLElement = document.getElementById("bottom-box");
     console.log("Clicked added", bottom.style, bottom.style.display, "!");
-    bottom.style.display= bottom.style.display === "block" ? "none" : "block";
+    bottom.style.display = bottom.style.display === "block" ? "none" : "block";
+    document.getElementById("add-input").focus();
   });
 
-  document.querySelector(".add-form").addEventListener("submit", (event: Event) => {
+  document.querySelector(".add-form").addEventListener("submit", (event: Event): void => {
     let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
     if (channels) {
       addChannel(channels, input.value);
@@ -237,7 +238,7 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
     event.preventDefault();
   });
 
-  document.querySelector("#add-file").addEventListener("change", (event: Event) => {
+  document.querySelector("#add-file").addEventListener("change", (event: Event): void => {
     let target: HTMLInputElement = event.target as HTMLInputElement;
     let fileList: FileList = target.files;
     addChannelsFromFile(channels, fileList);
@@ -258,18 +259,18 @@ function fetchChannels(channels: Map<string, APIReturn>): Promise<void> {
 
     // Launch one async call for each tracked channel
     let keyValuePromises: Promise<[string, APIReturn]>[] =
-      Array.from(channels.keys()).map((channelName: string) =>
+      Array.from(channels.keys()).map((channelName: string): Promise<[string, APIReturn]> =>
         jsonp<APIReturn>(apiPrefix + channelName + apiSuffix)
-          .then((apiReturn: APIReturn) => {
+          .then((apiReturn: APIReturn): [string, APIReturn] => {
             console.log("Returned from", channelName, apiReturn);
             return [channelName, apiReturn];
           }));
 
     // When all async calls have returned, update the channels object and then the DOM
     return Promise.all(keyValuePromises)
-      .then((kvs: [string, APIReturn][]) => {
+      .then((kvs: [string, APIReturn][]): void => {
         console.log("All resolved", kvs);
-        kvs.forEach((pair: [string, APIReturn]) => {
+        kvs.forEach((pair: [string, APIReturn]): void => {
           channels.set(pair[0], pair[1]);
         });
       });
@@ -369,11 +370,11 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
     anchor = document.createElement("a");
     anchor.className = "channel-link";
     anchor.style.color = col[0];
-    anchor.appendChild(document.createTextNode(channelName));
+    anchor.appendChild(document.createTextNode(stream.channel.name));
     anchor.href = stream.channel.url;
     rightBox.appendChild(anchor);
   }
-  box.addEventListener("click", (ev: Event) => {
+  box.addEventListener("click", (ev: Event): void => {
     if (ev.target !== anchor) { // Reveal the info box unless the click was on the anchor link
       let e: HTMLElement = document.getElementById(infoBoxIDPrefix + channelName);
       if (e) {
@@ -406,7 +407,7 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
   removeLabel.appendChild(document.createTextNode("Remove channel"));
   removeBox.appendChild(removeLabel);
   infoBox.appendChild(removeBox);
-  removeIcon.addEventListener("click", () => {
+  removeIcon.addEventListener("click", (): void => {
     removeChannel(channels, channelName);
   });
   box.appendChild(infoBox);
@@ -439,11 +440,12 @@ function createDummyChannel(): Node {
 
 function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
   console.log("Adding", newChannel);
-  if (!subs.has(newChannel)) {
-    subs.set(newChannel, offlineDummy);
+  let cleanedName = newChannel.trim().toLowerCase();
+  if (!subs.has(cleanedName)) {
+    subs.set(cleanedName, offlineDummy);
     saveChannels(subs);
     fetchChannels(subs)
-      .then(() => updateDOM(subs));
+      .then((): void => updateDOM(subs));
     updateDOM(subs);
   }
 }
@@ -467,20 +469,20 @@ function addChannelsFromFile(channels: Map<string, APIReturn>, files: FileList):
   console.log("About to read from", file.name);
 
   let reader: FileReader = new FileReader();
-  reader.onload = (ev: Event) => {
-    let fileContents: string = (ev.target as any).result;
+  reader.onload = (): void => {
+    let fileContents: string = reader.result;
     console.log("Reading from", fileContents);
     let newChannels: string[] = fileContents
       .split("\n")
-      .map((name: string) => name.trim())
-      .filter((name: string) => name !== "");
+      .map((name: string): string => name.trim().toLowerCase())
+      .filter((name: string): boolean => name !== "");
     console.log("Adding", newChannels);
-    newChannels.forEach((name: string) => {
+    newChannels.forEach((name: string): void => {
       channels.set(name, offlineDummy);
     });
     saveChannels(channels);
     fetchChannels(channels)
-      .then(() => updateDOM(channels));
+      .then((): void => updateDOM(channels));
   };
   reader.readAsText(file);
 }
