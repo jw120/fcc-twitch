@@ -4,119 +4,33 @@
  *
  */
 
-const offlineTestMode: boolean = false;
-
 
 const apiPrefix: string = "https://api.twitch.tv/kraken/streams/";
 const apiSuffix: string = "?callback="; // Name of the callback is added by fetchJSONP
-
 const localStorageKey: string = "channelNames";
-
-// Channels used on first startup - based on freecodecamp suggestions
-const defaultChannels: string[] = [
-  "ESL_SC2", "OgamingSC2", "cretetion", "freecodecamp",
-  "storbeck", "habathcx", "RobotCaleb", "noobs2ninjas"
-];
-
-
-const defaultErrorMessage: string = "Unidentified error"; // If API returns an error without a message
 const infoBoxIDPrefix: string = "info-";
 
-// Test data
-const offlineDummy: APIReturn = {
+/** Channels used on first startup (based on freecodecamp suggestions) */
+const defaultChannels: string[] = [
+  "esl_sc2", "ogamingsc2", "cretetion", "freecodecamp",
+  "storbeck", "habathcx", "robotcaleb", "noobs2ninjas"
+];
+
+/** Used for channels before the API returns (same value as API returns for a channel that is offline) */
+const nullAPIReturn: APIReturn = {
   stream: null
 };
 
-const notFoundDummy: APIReturn = {
-  error: "Not Found",
-  message: "Channel 'suqkjfhkqjfh' does not exist",
-  status: 404
-};
-
-const onlineDummy: APIReturn = {
-  stream: {
-    _id: 21639364272,
-    game: "Hearthstone: Heroes of Warcraft",
-    viewers: 1333,
-    created_at: "2016-06-02T06:58:53Z",
-    video_height: 864,
-    average_fps: 30,
-    delay: 0,
-    is_playlist: false,
-    channel: {
-      mature: false,
-      status: "[coL] Superjj - The miracle master",
-      broadcaster_language: "en",
-      display_name: "superjj102",
-      game: "Hearthstone: Heroes of Warcraft",
-      language: "de",
-      _id: 58352686,
-      name: "superjj102",
-      created_at: "2014-03-07T14:05:12Z",
-      updated_at: "2016-06-02T08:03:05Z",
-      delay: null,
-      logo: "https://static-cdn.jtvnw.net/jtv_user_pictures/superjj102-profile_image-a465d147fb62219c-300x300.jpeg",
-      banner: null,
-      video_banner: "https://static-cdn.jtvnw.net/jtv_user_pictures/superjj102-channel_offline_image-09c1e908eeb32c8e-1920x1080.jpeg",
-      background: null,
-      profile_banner: "https://static-cdn.jtvnw.net/jtv_user_pictures/superjj102-profile_banner-f21e237e2a304174-480.jpeg",
-      profile_banner_background_color: "#080308",
-      partner: true,
-      url: "https://www.twitch.tv/superjj102",
-      views: 1635891,
-      followers: 33864
-    }
-  }
-};
-
-const offlineTestMap: Map<string, APIReturn> = new Map([
-      ["abconline", onlineDummy],
-      ["defnotfound", notFoundDummy],
-      ["ghioffline", offlineDummy]
-]);
-
-// Palette of [colour, background-colour] pairs o use for channels - taken from clrs.cc
-const colours: [string, string][] = [
-/* navy */ // ["#7FDBFF", "#001F3F"], too dark
-/* blue */ // ["black", "#0074D9"],
-/* aqua */ ["black", "#7FDBFF"],
-/* teal */ ["black", "#39CCCC"],
-/* olive */ // "#3D9970", removed as clashes with header
-/* green */ ["black", "#2ECC40"],
-/* lime */ ["black", "#01FF70"],
-/* yellow */ ["black", "#FFDC00"],
-/* orange */ ["black", "#FF851B"],
-/* red */ ["black", "#FF4136"]
-/* fuchsia */ // ["black", "#F012BE"] too dark/ugly
-/* purple */ // ["black", "#B10DC9"], too dark/ugly
-/* maroon */ // ["white", "#85144B"],too dark/ugly
-/* white */ // ["white", "#FFFFFF"]
-/* silver */ // "#DDDDDD",
-/* gray */ // "#AAAAAA",
-/* black */ // "#111111"
+/** Palette of background-colours to use for online channels - taken from clrs.cc */
+const channelColours: string[] = [
+  "#7FDBFF", "#39CCCC", "#2ECC40", "#01FF70", "#FFDC00", "#FF851B", "#FF4136"
 ];
-const offlineColours: [string, string] = ["black", "#DDDDDDD"];
 
+/** Background colour to use for offline channels */
+const offlineChannelColour: string = "#DDDDDDD";
 
-/*
- *
- * Start-up code to set up our event listeners
- *
- */
-
-
-run_when_document_ready((): void => {
-
-  // We use this variable to hold our programme state - it is passed to and modified by
-  // sevral of our main functions. Here we set up the basic values
-  let trackedChannels: Map<string, APIReturn> = initializeTrackedChannels();
-
-  setupHandlers(trackedChannels);
-
-  fetchChannels(trackedChannels)
-    .then((): void => updateDOM(trackedChannels));
-
-});
+/**  Foreground colour for channels */
+const channelForeground: string = "black";
 
 
 /*
@@ -126,7 +40,6 @@ run_when_document_ready((): void => {
  */
 
 
-// Type for the parsed API return for an offline stream
 interface APIReturn {
   error?: string;
   message?: string;
@@ -135,14 +48,12 @@ interface APIReturn {
 }
 
 interface Stream {
-  game: string; // Name of the game being played
+  game: string;
   viewers: number;
   average_fps: number;
   delay: number;
   video_height: number;
-  is_playlist: boolean;
   created_at: string; // ISO date format, e.g., "2015-02-12T04:42:31Z",
-  _id: number;
   channel: Channel;
 }
 
@@ -170,109 +81,122 @@ interface Channel {
 
 /*
  *
- * Main working functions
+ * Start-up code
  *
  */
 
-function initializeTrackedChannels(): Map<string, APIReturn> {
 
-  // If we are in offlineTestMode, just return dummy values
-  if (offlineTestMode) {
-    return offlineTestMap;
-  }
+run_when_document_ready((): void => {
+
+  // We use this variable to hold our programme state - it is passed to and modified by
+  // sevral of our main functions. Here we set up the basic values
+  // Keys are all held in lower case
+  let trackedChannels: Map<string, APIReturn> = initializeTrackedChannels();
+
+  setupHandlers(trackedChannels);
+
+  fetchChannels(trackedChannels)
+    .then((): void => updateDOM(trackedChannels));
+
+});
+
+
+
+/*
+ *
+ * Top-level functions
+ *
+ */
+
+
+/** Create our map of tracked channels and set up with saved or default names and null APIReturns */
+function initializeTrackedChannels(): Map<string, APIReturn> {
 
   // If we have storage available and a valid stored value, use it
   if (storageAvailable("localStorage")) {
     try {
       let stored: string[] = JSON.parse(localStorage.getItem(localStorageKey));
-      console.log("Read from localStorage", stored);
       if (stored && Array.isArray(stored)) {
-        return new Map(stored.map((channelName: string): [string, APIReturn] => [channelName, offlineDummy]));
+        return new Map(stored.map((channelName: string): [string, APIReturn] => [channelName, nullAPIReturn]));
       }
     } catch (e) {
-      console.log("Caugght in storage getting/parsing", e);
+      console.log("Caught in storage getting/parsing", e);
     }
-  } else {
-      console.log("No storage to read");
   }
 
   // Otherwise, start with the defaults
-  return new Map(defaultChannels.map((channelName: string): [string, APIReturn] => [channelName, offlineDummy]));
+  return new Map(defaultChannels.map((channelName: string): [string, APIReturn] => [channelName, nullAPIReturn]));
 
 }
 
-
-  // TODO Sort out not doing this until all of trackedChannels is setup
-
-  //
-
+/** Attach handlers to the DOM */
 function setupHandlers(channels: Map<string, APIReturn>): void {
 
-  let onlineFilter: HTMLInputElement = document.getElementById("online-filter") as HTMLInputElement;
-  onlineFilter.addEventListener("click", (): void => {
-    console.log("onlineFilter", onlineFilter.checked);
-    if (channels) {
+  // Filter buttons toggles between showing all channels or only those which are online
+  (document.querySelector("#online-filter") as HTMLInputElement).addEventListener("click", (): void => {
       updateDOM(channels);
-    }
   });
 
-  document.querySelector("#refresh-control").addEventListener("click", () => {
-    console.log("Calling refresh with", channels);
+  // Refresh button re-fetches the tracked channels from the API and redraws the screen
+  document.querySelector("#refresh-control").addEventListener("click", (): void => {
     fetchChannels(channels)
       .then((): void => updateDOM(channels));
   });
 
+  // Add button toggles displaying the pane for adding new channels
   document.querySelector("#add-control").addEventListener("click", (): void => {
     let bottom: HTMLElement = document.getElementById("bottom-box");
-    console.log("Clicked added", bottom.style, bottom.style.display, "!");
     bottom.style.display = bottom.style.display === "block" ? "none" : "block";
     document.getElementById("add-input").focus();
   });
 
+  // Submit on add form allows a channel to be added
   document.querySelector(".add-form").addEventListener("submit", (event: Event): void => {
     let input: HTMLInputElement = document.getElementById("add-input") as HTMLInputElement;
     if (channels) {
       addChannel(channels, input.value);
-      input.value = "";
+      saveChannels(channels);
+      fetchChannels(channels)
+        .then((): void => updateDOM(channels));
     }
+    input.value = "";
     event.preventDefault();
   });
 
+  // Add file input reads a text file and adds each line as a channel
   document.querySelector("#add-file").addEventListener("change", (event: Event): void => {
     let target: HTMLInputElement = event.target as HTMLInputElement;
     let fileList: FileList = target.files;
-    addChannelsFromFile(channels, fileList);
-    target.value = ""; // Remove the filename shown in the control
+    addChannelsFromFileHandler(channels, fileList)
+      .then((): Promise<void> => {
+        saveChannels(channels);
+        return fetchChannels(channels);
+      })
+      .then((): void => {
+        updateDOM(channels);
+        target.value = ""; // Remove the filename shown in the control
+      });
   });
 
+  // Share takes the list of tracked channels and puts onto the clipboard to allow for relatvely easy exporting
   document.querySelector("#share-control").addEventListener("click", (): void => {
-    shareChannels(channels);
+    let exportText: string = Array.from(channels.keys()).join("\n");
+    window.prompt("Text below is ready for copy/paste:", exportText);
   });
 }
 
-
-
-// Use the API to update the given map (or create a new one if we are given an array of names)
+/** Use the API to update our tracked channels */
 function fetchChannels(channels: Map<string, APIReturn>): Promise<void> {
-
-    // Do nothing if we are offline
-    if (offlineTestMode) {
-      return Promise.resolve();
-    }
 
     // Launch one async call for each tracked channel
     let keyValuePromises: Promise<[string, APIReturn]>[] =
       Array.from(channels.keys()).map((channelName: string): Promise<[string, APIReturn]> =>
         jsonp<APIReturn>(apiPrefix + channelName + apiSuffix)
-          .then((apiReturn: APIReturn): [string, APIReturn] => {
-            console.log("Returned from", channelName, apiReturn);
-            return [channelName, apiReturn];
-          }));
+          .then((apiReturn: APIReturn): [string, APIReturn] => [channelName, apiReturn]));
 
-    // When all async calls have returned, update the channels object and then the DOM
+    // Complete when all async calls have returned
     return Promise.all(keyValuePromises)
       .then((kvs: [string, APIReturn][]): void => {
-        console.log("All resolved", kvs);
         kvs.forEach((pair: [string, APIReturn]): void => {
           channels.set(pair[0], pair[1]);
         });
@@ -281,17 +205,15 @@ function fetchChannels(channels: Map<string, APIReturn>): Promise<void> {
 }
 
 
-function saveChannels(channels: Map<string, APIReturn>): void {
-  if (storageAvailable("localStorage")) {
-    let keys: string[] = Array.from(channels.keys());
-    localStorage.setItem(localStorageKey, JSON.stringify(keys));
-    console.log("Wrote to localStorage", keys);
-  } else {
-    console.log("No storage to write to");
-  }
-}
+/**
+ *
+ * View functions (which update the DOM)
+ *
+ *
+ */
 
-// Update the search-results div in the DOM with the new search results
+
+/** Update the .lists div in the DOM with the the given channel values */
 function updateDOM(channels: Map<string, APIReturn>): void {
 
   const list: Element = document.querySelector(".list");
@@ -301,6 +223,7 @@ function updateDOM(channels: Map<string, APIReturn>): void {
     list.removeChild(list.firstChild);
   }
 
+  /** Colour to use for the next online channel */
   let colIndex: number = 0;
 
   // Add each of the search results
@@ -308,24 +231,26 @@ function updateDOM(channels: Map<string, APIReturn>): void {
   channels.forEach((res: APIReturn, channelName: string): void => {
 
     if (res.error) {
+      console.log(channelName, "gave error", res);
       if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
-        list.appendChild(createChannel(channelName, channels, res.message || defaultErrorMessage, offlineColours));
+        list.appendChild(createChannel(
+          channels, channelName, offlineChannelColour,
+          `${res.message} (${res.status}, ${res.error}, ${channelName})`));
         channelsShown++;
       }
     } else if (!res.stream) {
       if (!(document.getElementById("online-filter") as HTMLInputElement).checked) {
-        list.appendChild(createChannel(channelName, channels, "", offlineColours));
+        list.appendChild(createChannel(channels, channelName, offlineChannelColour, channelName));
         channelsShown++;
       }
     } else {
-      list.appendChild(createChannel(channelName, channels, res.stream, colours[colIndex]));
-      colIndex = (colIndex + 1) % colours.length;
+      list.appendChild(createChannel(channels, channelName, channelColours[colIndex]));
+      colIndex = (colIndex + 1) % channelColours.length;
       channelsShown++;
     }
 
   });
 
-  console.log("Displaying", channelsShown);
   if (channelsShown === 0) {
     let msg: HTMLDivElement = document.createElement("div");
     msg.className = "no-channels-message-box";
@@ -333,22 +258,28 @@ function updateDOM(channels: Map<string, APIReturn>): void {
     list.appendChild(msg);
   }
 
-  // Add dummy channels at the end
+  // Add dummy channels at the end so that the bottom row is filled and its channels are not too narrow
   for (let i: number = 0; i < 4; i++) {
-    list.appendChild(createDummyChannel());
+    let dummyBox: Element = document.createElement("div");
+    dummyBox.className = "channel dummy";
+    list.appendChild(dummyBox);
   }
 
 }
 
-// Create a DOM node representing a channel, takes the name of the channel and either its
-// Stream or an error message (an empty string if offline)
-function createChannel(channelName: string, channels: Map<string, APIReturn>, stream: Stream | string, col: [string, string]): Node {
+/** Create a DOM node representing a channel that shows either the message if given or the stored value from the API */
+function createChannel(channels: Map<string, APIReturn>, channelName: string,  bgColour: string, message?: string): Node {
+
+  // Extract components of the channel's API informations
+  let apiReturn: APIReturn | undefined = channels.get(channelName);
+  let stream: Stream | undefined = (apiReturn && apiReturn.stream) ? apiReturn.stream : undefined;
+  let channel: Channel | undefined = (stream && stream.channel) ? stream.channel : undefined;
 
   // Top-level box
   let box: HTMLDivElement = document.createElement("div");
-  box.className = "channel " + (typeof stream === "string" ? (stream === "" ? "offline" : "error") : "online");
-  box.style.color = col[0];
-  box.style.backgroundColor = col[1];
+  box.className = "channel " + (typeof message === "string" ? (message === "" ? "offline" : "error") : "online");
+  box.style.color = channelForeground;
+  box.style.backgroundColor = bgColour;
 
   // Top part of box is always visible - logo on the left (if online), name on right
   let topBox: HTMLDivElement = document.createElement("div");
@@ -356,26 +287,26 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
   box.appendChild(topBox);
   let leftBox: HTMLDivElement = document.createElement("div");
   leftBox.className = "channel-top-left";
-  if (!offlineTestMode && typeof stream !== "string" && stream.channel && stream.channel.logo) {
+  if (channel && channel.logo) {
       let logo: HTMLImageElement = document.createElement("img");
       logo.className = "channel-logo";
-      logo.src = stream.channel.logo;
+      logo.src = channel.logo;
       leftBox.appendChild(logo);
   }
   topBox.appendChild(leftBox);
   let rightBox: HTMLDivElement = document.createElement("div");
   rightBox.className = "channel-top-right";
   let anchor: HTMLAnchorElement | null = null;
-  if (typeof stream === "string") {
-    let text: string = stream === "" ? channelName : (stream + " (" + channelName + ")");
-    rightBox.appendChild(document.createTextNode(text));
-  } else {
+  if (stream) {
     anchor = document.createElement("a");
     anchor.className = "channel-link";
-    anchor.style.color = col[0];
-    anchor.appendChild(document.createTextNode(stream.channel.display_name));
+    anchor.style.color = channelForeground;
+    // Label is the returned display_name (which is capitalized) if available, or the requested (down-cased) key if not
+    anchor.appendChild(document.createTextNode(stream.channel.display_name || channelName));
     anchor.href = stream.channel.url;
     rightBox.appendChild(anchor);
+  } else {
+    rightBox.appendChild(document.createTextNode(message || channelName));
   }
   box.addEventListener("click", (ev: Event): void => {
     if (ev.target !== anchor) { // Reveal the info box unless the click was on the anchor link
@@ -385,7 +316,6 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
       }
     }
   });
-
   topBox.appendChild(rightBox);
 
   // Bottom part has its display changed on click
@@ -393,11 +323,10 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
   infoBox.className = "channel-info" + (typeof stream === "string" ? " offline" : "");
   infoBox.id = infoBoxIDPrefix + channelName;
   infoBox.style.display = "none";
-  if (typeof stream !== "string") {
+  if (stream) {
     addInfoItem(infoBox, "Game", stream.channel.game);
     addInfoItem(infoBox, "Status", stream.channel.status);
     addInfoItem(infoBox, "Viewers", stream.viewers.toString());
-    // addInfoItem(infoBox, "Delay", stream.channel.delay || "-");
     addInfoItem(infoBox, "Video", stream.video_height + "px, " + stream.average_fps.toFixed(0) + "fps");
   }
   let removeBox: HTMLDivElement = document.createElement("div");
@@ -412,6 +341,8 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
   infoBox.appendChild(removeBox);
   removeIcon.addEventListener("click", (): void => {
     removeChannel(channels, channelName);
+    saveChannels(channels);
+    updateDOM(channels);
   });
   box.appendChild(infoBox);
 
@@ -419,7 +350,9 @@ function createChannel(channelName: string, channels: Map<string, APIReturn>, st
 
 }
 
+/** Add a child node with the given channel tag and content information */
 function addInfoItem(parent: HTMLElement, tag: string, content: string): void {
+
   let item: HTMLDivElement = document.createElement("div");
   item.className = "channel-info-item";
   let heading: HTMLHeadingElement = document.createElement("h4");
@@ -429,71 +362,81 @@ function addInfoItem(parent: HTMLElement, tag: string, content: string): void {
   para.appendChild(document.createTextNode(content));
   item.appendChild(para);
   parent.appendChild(item);
-}
-
-// Create a DOM node for a dummy channel (used to make bottom row of channels have equal width as others)
-function createDummyChannel(): Node {
-
-  let box: Element = document.createElement("div");
-  box.className = "channel dummy";
-
-  return box;
 
 }
 
-function addChannel(subs: Map<string, APIReturn>, newChannel: string): void {
-  console.log("Adding", newChannel);
+
+
+/**
+ *
+ * Handler functions
+ *
+ */
+
+
+/** Handle request to add channels form the single file in the given FileList */
+function addChannelsFromFileHandler(channels: Map<string, APIReturn>, files: FileList): Promise<void> {
+
+  return new Promise<void>((resolve: () => void, reject: (reason: any) => void): void => {
+
+    if (files.length === 0) {
+      reject(Error("Empty FileList in addChannelsFromFile"));
+    }
+
+    let file: File = files.item(0);
+    let reader: FileReader = new FileReader();
+    reader.onload = (): void => {
+      let fileContents: string = reader.result;
+      let newChannels: string[] = fileContents
+        .split("\n")
+        .filter((name: string): boolean => name.trim() !== "");
+      newChannels.forEach((name: string): void => {
+        addChannel(channels, name);
+      });
+
+    };
+    reader.readAsText(file);
+    resolve();
+
+  });
+
+}
+
+
+/*
+ *
+ * Helper functions
+ *
+ */
+
+/** Add the given channel to our tracked channels */
+function addChannel (channels: Map<string, APIReturn>, newChannel: string): void {
+
   let cleanedName: string = newChannel.trim().toLowerCase();
-  if (!subs.has(cleanedName)) {
-    subs.set(cleanedName, offlineDummy);
-    saveChannels(subs);
-    fetchChannels(subs)
-      .then((): void => updateDOM(subs));
-    updateDOM(subs);
+  if (!channels.has(cleanedName)) {
+    channels.set(cleanedName, nullAPIReturn);
   }
+
 }
 
+/** Remove the given channel from our tracked channels */
 function removeChannel(channels: Map<string, APIReturn>, channelName: string): void {
-  channels.delete(channelName);
-  saveChannels(channels);
-  updateDOM(channels);
+
+  channels.delete(channelName.trim().toLowerCase());
+
 }
 
-function addChannelsFromFile(channels: Map<string, APIReturn>, files: FileList): void {
 
-  if (files.length === 0) {
-    console.log("Empty FileList in addChannelsFromFile");
-    return;
-  } else if (files.length > 1) {
-    console.log("Unexpected extra files ignored in addChannelsFromFile", files.length);
+/** Save the names of our tracked channels into localStorage if we can */
+function saveChannels(channels: Map<string, APIReturn>): void {
+
+  if (storageAvailable("localStorage")) {
+    let keys: string[] = Array.from(channels.keys());
+    localStorage.setItem(localStorageKey, JSON.stringify(keys));
   }
 
-  let file: File = files.item(0);
-  console.log("About to read from", file.name);
-
-  let reader: FileReader = new FileReader();
-  reader.onload = (): void => {
-    let fileContents: string = reader.result;
-    console.log("Reading from", fileContents);
-    let newChannels: string[] = fileContents
-      .split("\n")
-      .map((name: string): string => name.trim().toLowerCase())
-      .filter((name: string): boolean => name !== "");
-    console.log("Adding", newChannels);
-    newChannels.forEach((name: string): void => {
-      channels.set(name, offlineDummy);
-    });
-    saveChannels(channels);
-    fetchChannels(channels)
-      .then((): void => updateDOM(channels));
-  };
-  reader.readAsText(file);
 }
 
-function shareChannels(channels: Map<string, APIReturn>): void {
-  let exportText: string = Array.from(channels.keys()).join("\n");
-  window.prompt("Text below is ready for copy/paste:", exportText);
-}
 
 
 /*
@@ -503,23 +446,26 @@ function shareChannels(channels: Map<string, APIReturn>): void {
  */
 
 
-// Standard function to run a function when document is loaded
+/** Run the given function when document load is complete */
 function run_when_document_ready(fn: () => void): void {
+
   if (document.readyState !== "loading") {
     fn();
   } else {
     document.addEventListener("DOMContentLoaded", fn);
   }
+
 }
 
-// Simple function to make a jsonp request and wrap in a Promise
-// Url paramater will have the name of the callback appended
-// Adapted from https://github.com/camsong/fetch-jsonp
+/**
+ * Simple function to make a jsonp request and wrap in a Promise
+ *
+ * Url paramater will have the name of the callback appended
+ * Adapted from https://github.com/camsong/fetch-jsonp
+ */
 function jsonp<T>(url: string): Promise<T> {
 
-  console.log("Called jsonp for", url);
-
-  return new Promise((resolve: (r: T) => void) => {
+  return new Promise<T>((resolve: (r: T) => void): void => {
 
     // Create a random name for the callback function (so we can create many of them indpendently)
     let callbackName: string = `callback_jsonp_${Date.now()}_${Math.ceil(Math.random() * 100000)}`;
@@ -546,8 +492,9 @@ function jsonp<T>(url: string): Promise<T> {
 }
 
 
-// Utility function from MDN that returns true if local storage is available (from MDN)
+/** Utility function from MDN that returns true if local storage is available (from MDN) */
 function storageAvailable(type: string): boolean {
+
   try {
     let storage: any = (window as any)[type];
     let x: string = "__storage_test__";
@@ -557,4 +504,5 @@ function storageAvailable(type: string): boolean {
   } catch (e) {
     return false;
   }
+
 }

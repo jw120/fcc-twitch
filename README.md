@@ -12,12 +12,16 @@ TODO
 
 * Program hygeine
 
-  + Think about cases of streams (match case-insensitively but display with preferred case?)
-  + Tidy debug info
-  + Tidy file - better sections, subfiles? and use JSDOC?
+  + DONE - Sort out Promises - how to chain - pure functions/resolve function/another async
+  + DONE Get working again
+  + DONE - Think about cases of streams (match case-insensitively but display with preferred case?)
+  + DONE - Tidy debug info
+  + DONE - Tidy file - better sections and use JSDOC
+  + DONE - Tidy file - DRYer
 
 * Functionality
 
+  + Add mouseover tooltips to icons?
   + Tidy info box output (handle wide status and channel names better)
   + DONE Add share (=show and put onto clipboard?) of tracked channels
   * DONE Better promisfying of startup code
