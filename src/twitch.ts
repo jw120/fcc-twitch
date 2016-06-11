@@ -95,8 +95,14 @@ run_when_document_ready((): void => {
 
   setupHandlers(trackedChannels);
 
+  let refreshControl: Element = document.querySelector("#refresh-control");
+  refreshControl.className = "fa fa-refresh control-icon fa-spin";
+
   fetchChannels(trackedChannels)
-    .then((): void => updateDOM(trackedChannels));
+    .then((): void => {
+      updateDOM(trackedChannels);
+      refreshControl.className = "fa fa-refresh control-icon";
+    });
 
 });
 
@@ -138,9 +144,14 @@ function setupHandlers(channels: Map<string, APIReturn>): void {
   });
 
   // Refresh button re-fetches the tracked channels from the API and redraws the screen
-  document.querySelector("#refresh-control").addEventListener("click", (): void => {
+  let refreshControl: Element = document.querySelector("#refresh-control");
+  refreshControl.addEventListener("click", (): void => {
+    refreshControl.className = "fa fa-refresh control-icon fa-spin";
     fetchChannels(channels)
-      .then((): void => updateDOM(channels));
+      .then((): void => {
+        updateDOM(channels);
+        refreshControl.className = "fa fa-refresh control-icon";
+      });
   });
 
   // Add button toggles displaying the pane for adding new channels

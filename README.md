@@ -22,6 +22,7 @@ TODO
 * Functionality
 
   + Add mouseover tooltips to icons?
+  + DONE - Spinning icon on refresh and at start
   + Tidy info box output (handle wide status and channel names better)
   + DONE Add share (=show and put onto clipboard?) of tracked channels
   * DONE Better promisfying of startup code
