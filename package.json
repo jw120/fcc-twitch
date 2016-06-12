@@ -21,7 +21,10 @@
     "lint": "tslint -c tslint.json src/twitch.ts",
     "build:js": "buble src/twitch.js --output dist/twitch.js",
     "build:static": "cp src/index.html src/twitch.css dist/",
-    "build": "npm run build:js && npm run build:static",
+    "build:fafonts": "cp -R node_modules/font-awesome/fonts dist/",
+    "build:facss": "cp node_modules/font-awesome/css/font-awesome.min.css dist/css/",
+    "build:dirs": "mkdir -p dist/css",
+    "build": "npm run build:js && npm run build:static && npm run build:dirs && npm run build:facss && npm run build:fafonts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "JW",
