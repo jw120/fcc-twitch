@@ -11,6 +11,7 @@
     "font-awesome": "^4.6.3"
   },
   "devDependencies": {
+    "buble": "^0.10.6",
     "tslint": "next",
     "typescript": "next"
   },
@@ -18,7 +19,9 @@
     "compile": "tsc",
     "compile-watch": "tsc --watch",
     "lint": "tslint -c tslint.json src/twitch.ts",
-    "build": "cp src/index.html src/twitch.css src/twitch.js src/twitch.js.map dist/",
+    "build:js": "buble src/twitch.js --output dist/twitch.js",
+    "build:static": "cp src/index.html src/twitch.css dist/",
+    "build": "npm run build:js && npm run build:static",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "JW",

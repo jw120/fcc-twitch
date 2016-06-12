@@ -9,20 +9,19 @@ Hosted at [jw120.github.io](https://jw120.github.io)
 
 TODO
 
+* Program hygiene
 
-* Program hygeine
-
-  + DONE - Sort out Promises - how to chain - pure functions/resolve function/another async
+  + DONE Sort out Promises - how to chain - pure functions/resolve function/another async
   + DONE Get working again
-  + DONE - Think about cases of streams (match case-insensitively but display with preferred case?)
-  + DONE - Tidy debug info
-  + DONE - Tidy file - better sections and use JSDOC
-  + DONE - Tidy file - DRYer
+  + DONE Think about cases of streams (match case-insensitively but display with preferred case?)
+  + DONE Tidy debug info
+  + DONE Tidy file - better sections and use JSDOC
+  + DONE Tidy file - DRYer
 
 * Functionality
 
-  + Add mouseover tooltips to icons?
-  + DONE - Spinning icon on refresh and at start
+  + DONE Add mouseover tooltips to icons
+  + DONE Spinning icon on refresh and at start
   + Tidy info box output (handle wide status and channel names better)
   + DONE Add share (=show and put onto clipboard?) of tracked channels
   * DONE Better promisfying of startup code
@@ -38,6 +37,6 @@ TODO
 
 * Packaging, compatability
 
-  + Add core.js for let, promises, etc
-  + iPhone cursor click trick
+  + DONE Add compile to ES5
+  + DONE Add iPhone cursor click trick
   + iPhone test

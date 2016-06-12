@@ -288,7 +288,7 @@ function createChannel(channels: Map<string, APIReturn>, channelName: string,  b
 
   // Top-level box
   let box: HTMLDivElement = document.createElement("div");
-  box.className = "channel " + (typeof message === "string" ? (message === "" ? "offline" : "error") : "online");
+  box.className = "clickable channel " + (typeof message === "string" ? (message === "" ? "offline" : "error") : "online");
   box.style.color = channelForeground;
   box.style.backgroundColor = bgColour;
 

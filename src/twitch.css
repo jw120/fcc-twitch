@@ -9,6 +9,11 @@ body {
     margin-right: auto;
 }
 
+/* Allow click events on iOS */
+.clickable {
+    cursor: point;
+}
+
 /* Content above the list of channels - holds title and filter control */
 .top {
     width: 100%;
@@ -42,8 +47,6 @@ body {
     background-color: #3D9970;
     display: none; /* Toggled on/off in javascript */
     font-size: 9pt;
-    /*margin-top: -16px;*/
-    /*border: 3px solid white;*/
 }
 
 .bottom-row {
@@ -73,8 +76,6 @@ body {
     flex-wrap: wrap;
     justify-content: flex-start;
     align-items: flex-start;
-    min-width: 300px;
-    /*border: 3px solid white;*/
 }
 
 .no-channels-message-box {
@@ -87,13 +88,12 @@ body {
 
 /* Style for each channel */
 .channel {
-    min-width: 12em;
-    flex: 1;
+    min-width: 180px;
+    flex: 1 0 180px; /* we would just use flex:1, but this fails on safari 9 due to this bug https://bugs.webkit.org/show_bug.cgi?id=136041 */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    /*border: 3px solid white;*/
 }
 
 .channel.dummy {
